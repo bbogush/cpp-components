@@ -1,0 +1,21 @@
+{
+  "name": "C++ Dev Container",
+  "build": {
+    "dockerfile": "../docker/Dockerfile"
+  },
+  "workspaceFolder": "/workspaces/${localWorkspaceFolderBasename}",
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "ms-vscode.cpptools",
+        "ms-vscode.cpptools-extension-pack",
+        "ms-vscode.cmake-tools"
+      ],
+      "settings": {
+        "C_Cpp.default.compilerPath": "/usr/bin/g++",
+        "cmake.configureOnOpen": true
+      }
+    }
+  },
+  "remoteUser": "ubuntu"
+}

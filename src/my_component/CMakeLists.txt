@@ -1,0 +1,4 @@
+add_library(my_component my_component.cpp)
+
+target_link_libraries(my_component PRIVATE project_options)
+target_link_libraries(my_component PRIVATE project_features)
