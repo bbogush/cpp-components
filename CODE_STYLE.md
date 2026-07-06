@@ -650,7 +650,7 @@ void get_id(Id &id, const std::string &name);
 - Use only for lambdas, template-heavy returns, or when it clearly improves readability.
 
 ```cpp
-template <typename T, typename U>
+template<typename T, typename U>
 auto add(T a, U b) -> decltype(a + b);
 ```
 
@@ -930,7 +930,7 @@ Widget &widget = *it->second;
 
 ```cpp
 // OK
-template <typename T>
+template<typename T>
 void f(T arg)
 {
 }
