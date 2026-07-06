@@ -11,4 +11,4 @@ FetchContent_MakeAvailable(googletest)
 
 include(GoogleTest)
 
-add_subdirectory(my_component)
+add_subdirectory(executor)

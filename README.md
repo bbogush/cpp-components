@@ -1,4 +1,4 @@
-# cpp-project-template
+# cpp-components
 
 A minimal C++ project template with CMake, Docker-based development environment, and VS Code Dev Containers support.
 
@@ -80,11 +80,11 @@ cmake --build --preset asan
 Run the executable:
 
 ```bash
-./build/release/cpp-project-template
+./build/release/cpp-components
 # or
-./build/debug/cpp-project-template
+./build/debug/cpp-components
 # or
-./build/asan/cpp-project-template
+./build/asan/cpp-components
 ```
 
 Clean build outputs:

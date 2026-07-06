@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.20)
-project(cpp-project-template VERSION 0.1.0 LANGUAGES CXX)
+project(cpp-components VERSION 0.1.0 LANGUAGES CXX)
 
 option(BUILD_TESTING "Build unit tests" OFF)
 option(ENABLE_COVERAGE "Instrument src/ targets for code coverage" OFF)

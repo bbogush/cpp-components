@@ -1,4 +1,4 @@
-add_subdirectory(my_component)
+add_subdirectory(executor)
 
 add_executable(${PROJECT_NAME} main.cpp)
 
@@ -8,4 +8,4 @@ set_target_properties(${PROJECT_NAME} PROPERTIES
 
 target_link_libraries(${PROJECT_NAME} PRIVATE project_options)
 target_link_libraries(${PROJECT_NAME} PRIVATE project_features)
-target_link_libraries(${PROJECT_NAME} PRIVATE my_component)
+target_link_libraries(${PROJECT_NAME} PRIVATE executor)
