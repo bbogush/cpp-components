@@ -10,7 +10,8 @@ RUN apt-get update && apt-get install -y \
     cmake \
     git \
     lcov \
-    libboost-dev
+    libboost-dev \
+    libssl-dev
 
 # Use a non-root user ubuntu
 ARG USERNAME=ubuntu

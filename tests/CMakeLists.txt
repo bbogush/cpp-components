@@ -12,3 +12,4 @@ FetchContent_MakeAvailable(googletest)
 include(GoogleTest)
 
 add_subdirectory(executor)
+add_subdirectory(secure_websocket_client)
