@@ -74,31 +74,43 @@
   ],
   "buildPresets": [
     {
+      "name": "default-build",
+      "hidden": true,
+      "jobs": 0
+    },
+    {
       "name": "release",
+      "inherits": "default-build",
       "configurePreset": "release"
     },
     {
       "name": "relwithdebinfo",
+      "inherits": "default-build",
       "configurePreset": "relwithdebinfo"
     },
     {
       "name": "debug",
+      "inherits": "default-build",
       "configurePreset": "debug"
     },
     {
       "name": "asan",
+      "inherits": "default-build",
       "configurePreset": "asan"
     },
     {
       "name": "tests",
+      "inherits": "default-build",
       "configurePreset": "tests"
     },
     {
       "name": "coverage",
+      "inherits": "default-build",
       "configurePreset": "coverage"
     },
     {
       "name": "coverage-report",
+      "inherits": "default-build",
       "configurePreset": "coverage",
       "targets": [
         "coverage-report"
@@ -106,10 +118,12 @@
     },
     {
       "name": "clang-tidy",
+      "inherits": "default-build",
       "configurePreset": "clang-tidy"
     },
     {
       "name": "clang-tidy-check",
+      "inherits": "default-build",
       "configurePreset": "clang-tidy",
       "targets": [
         "clang-tidy"
