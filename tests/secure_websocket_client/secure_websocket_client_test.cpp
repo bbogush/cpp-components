@@ -187,6 +187,65 @@ uint16_t start_secure_websocket_path_server(std::string allowed_resource)
     return port;
 }
 
+uint16_t start_secure_ping_pong_server(std::string expected_ping)
+{
+    namespace beast = boost::beast;
+    namespace websocket = beast::websocket;
+    namespace net = boost::asio;
+    namespace ssl = net::ssl;
+    using tcp = net::ip::tcp;
+    using websocket_stream = websocket::stream<ssl::stream<beast::tcp_stream>>;
+
+    auto ioc = std::make_shared<net::io_context>();
+    auto acceptor = std::make_shared<tcp::acceptor>(*ioc, tcp::endpoint(tcp::v4(), 0));
+    const auto port = acceptor->local_endpoint().port();
+
+    std::thread([ioc, acceptor, expected_ping = std::move(expected_ping)]() {
+        ssl::context ssl_context(ssl::context::tlsv12_server);
+        ssl_context.use_certificate_chain_file(TEST_CERT_DIR "/test-cert.pem");
+        ssl_context.use_private_key_file(TEST_CERT_DIR "/test-key.pem",
+            ssl::context::file_format::pem);
+
+        tcp::socket socket(*ioc);
+        boost::system::error_code ec;
+        acceptor->accept(socket, ec);
+        if (ec) {
+            return;
+        }
+
+        websocket_stream ws(ssl::stream<beast::tcp_stream>(std::move(socket), ssl_context));
+        ws.next_layer().handshake(ssl::stream_base::server, ec);
+        if (ec) {
+            return;
+        }
+
+        ws.accept(ec);
+        if (ec) {
+            return;
+        }
+
+        for (;;) {
+            beast::flat_buffer buffer;
+            ws.read(buffer, ec);
+            if (ec) {
+                break;
+            }
+
+            const auto data = buffer.cdata();
+            const auto message =
+                std::string(static_cast<const char *>(data.data()), data.size());
+            if (message == expected_ping) {
+                ws.write(net::buffer(std::string("pong")), ec);
+            }
+            if (ec) {
+                break;
+            }
+        }
+    }).detach();
+
+    return port;
+}
+
 } // namespace
 
 TEST(SecureWebSocketClientTest, connect_write_and_receive)
@@ -460,5 +519,50 @@ TEST(SecureWebSocketClientTest, double_connect_reports_already_connected)
     });
 
     ASSERT_TRUE(wait_ready(closed_future));
+    executor.stop();
+}
+
+TEST(SecureWebSocketClientTest, ping_interval_sends_ping_and_receives_pong)
+{
+    constexpr auto ping_message = "custom-ping";
+    const auto port = start_secure_ping_pong_server(ping_message);
+    const auto port_string = std::to_string(port);
+
+    cpp_components::executor::Executor executor {};
+    auto client = cpp_components::secure_websocket_client::SecureWebSocketClient::create(executor);
+    client->set_ca_certificate(TEST_CERT_DIR "/test-cert.pem");
+    client->set_ping_message_generator([]() { return std::string(ping_message); });
+    client->set_ping_interval(std::chrono::seconds { 1 });
+
+    std::promise<void> connected;
+    const auto connected_future = connected.get_future().share();
+    client->connect("localhost", port_string, "/", [&connected](const std::error_code &ec) {
+        if (!ec) {
+            connected.set_value();
+        }
+    });
+
+    ASSERT_TRUE(wait_ready(connected_future));
+    EXPECT_TRUE(client->is_connected());
+
+    std::promise<std::string> pong_received;
+    const auto pong_received_future = pong_received.get_future().share();
+    client->set_message_handler([&pong_received](const char *data, size_t size) {
+        pong_received.set_value(std::string(data, size));
+    });
+
+    ASSERT_TRUE(wait_ready(pong_received_future));
+    EXPECT_EQ(pong_received_future.get(), "pong");
+
+    std::promise<void> closed;
+    const auto closed_future = closed.get_future().share();
+    client->close([&closed](const std::error_code &ec) {
+        if (!ec) {
+            closed.set_value();
+        }
+    });
+
+    ASSERT_TRUE(wait_ready(closed_future));
+    EXPECT_FALSE(client->is_connected());
     executor.stop();
 }

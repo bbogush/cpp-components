@@ -7,6 +7,7 @@
 #define CPP_COMPONENTS_SECURE_WEBSOCKET_CLIENT_H
 
 #include "executor/executor.h"
+#include "timer/timer.h"
 
 #include <boost/asio/ip/tcp.hpp>
 #include <boost/asio/ssl.hpp>
@@ -16,6 +17,7 @@
 #include <boost/beast/websocket/ssl.hpp>
 
 #include <atomic>
+#include <chrono>
 #include <cstddef>
 #include <deque>
 #include <functional>
@@ -32,6 +34,7 @@ public:
     using WriteHandler = std::function<void(const std::error_code &ec)>;
     using CloseHandler = std::function<void(const std::error_code &ec)>;
     using DisconnectHandler = std::function<void(const std::error_code &ec)>;
+    using PingMessageGenerator = std::function<std::string()>;
 
     static std::shared_ptr<SecureWebSocketClient> create(executor::Executor &executor);
 
@@ -48,6 +51,8 @@ public:
 
     void set_message_handler(MessageHandler handler);
     void set_disconnect_handler(DisconnectHandler handler);
+    void set_ping_message_generator(PingMessageGenerator generator);
+    void set_ping_interval(std::chrono::seconds interval);
 
     bool is_connected() const;
 
@@ -98,10 +103,15 @@ private:
     void fail_connection(const boost::system::error_code &ec, const ConnectHandler &handler);
     void handle_unexpected_disconnect(const boost::system::error_code &ec);
 
+    void start_ping_timer();
+    void stop_ping_timer();
+    void handle_ping_timer(const std::error_code &ec);
+
     executor::Executor &executor;
     boost::asio::ssl::context ssl_context;
     Tcp::resolver resolver;
     WebSocketStream ws;
+    timer::Timer ping_timer;
     boost::beast::flat_buffer read_buffer;
     std::string host;
     std::string port;
@@ -111,6 +121,8 @@ private:
     std::atomic<ConnectionState> state { ConnectionState::disconnected };
     MessageHandler message_handler;
     DisconnectHandler disconnect_handler;
+    PingMessageGenerator ping_message_generator;
+    std::chrono::seconds ping_interval { 0 };
 };
 
 } // namespace cpp_components::secure_websocket_client

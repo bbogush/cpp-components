@@ -34,7 +34,7 @@ std::shared_ptr<SecureWebSocketClient> SecureWebSocketClient::create(executor::E
 
 SecureWebSocketClient::SecureWebSocketClient(executor::Executor &executor) :
     executor(executor), ssl_context(ssl::context::tlsv12_client), resolver(executor.get_context()),
-    ws(executor.get_context(), ssl_context)
+    ws(executor.get_context(), ssl_context), ping_timer(executor)
 {
     ssl_context.set_default_verify_paths();
     ssl_context.set_verify_mode(ssl::verify_peer);
@@ -113,6 +113,30 @@ void SecureWebSocketClient::set_disconnect_handler(DisconnectHandler handler)
         self->disconnect_handler = std::move(handler);
     };
     executor.post(std::move(disconnect_handler));
+}
+
+void SecureWebSocketClient::set_ping_message_generator(PingMessageGenerator generator)
+{
+    auto self = shared_from_this();
+    auto set_generator = [self, generator = std::move(generator)]() mutable {
+        self->ping_message_generator = std::move(generator);
+    };
+    executor.post(std::move(set_generator));
+}
+
+void SecureWebSocketClient::set_ping_interval(std::chrono::seconds interval)
+{
+    auto self = shared_from_this();
+    auto interval_handler = [self, interval]() {
+        self->ping_interval = interval;
+        if (!self->is_connected()) {
+            return;
+        }
+
+        self->stop_ping_timer();
+        self->start_ping_timer();
+    };
+    executor.post(std::move(interval_handler));
 }
 
 bool SecureWebSocketClient::is_connected() const
@@ -232,6 +256,7 @@ void SecureWebSocketClient::handle_websocket_handshake(const ConnectHandler &han
         handler({});
     }
     start_read();
+    start_ping_timer();
 }
 
 void SecureWebSocketClient::start_read()
@@ -356,6 +381,7 @@ bool SecureWebSocketClient::is_connecting() const
 
 void SecureWebSocketClient::cancel_pending_operations()
 {
+    stop_ping_timer();
     resolver.cancel();
     beast::get_lowest_layer(ws).cancel();
 }
@@ -402,9 +428,40 @@ void SecureWebSocketClient::handle_unexpected_disconnect(const boost::system::er
     }
 
     set_state(ConnectionState::disconnected);
+    stop_ping_timer();
     if (disconnect_handler) {
         disconnect_handler(static_cast<std::error_code>(ec));
     }
+}
+
+void SecureWebSocketClient::start_ping_timer()
+{
+    if (ping_interval <= std::chrono::seconds::zero() || !is_connected()) {
+        return;
+    }
+
+    ping_timer.expires_after(ping_interval);
+    auto self = shared_from_this();
+    ping_timer.async_wait(
+        [self](const std::error_code &ec) { self->handle_ping_timer(ec); });
+}
+
+void SecureWebSocketClient::stop_ping_timer()
+{
+    ping_timer.cancel();
+}
+
+void SecureWebSocketClient::handle_ping_timer(const std::error_code &ec)
+{
+    if (ec || !is_connected() || ping_interval <= std::chrono::seconds::zero()) {
+        return;
+    }
+
+    if (ping_message_generator) {
+        do_write(ping_message_generator(), nullptr);
+    }
+
+    start_ping_timer();
 }
 
 } // namespace cpp_components::secure_websocket_client
