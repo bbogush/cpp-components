@@ -17,7 +17,7 @@ execute_process(
   COMMAND "${LCOV_EXECUTABLE}"
           --capture
           --directory "${COVERAGE_BINARY_DIR}"
-          --ignore-errors mismatch
+          --ignore-errors mismatch,negative
           --output-file "${_coverage_info}"
   COMMAND_ERROR_IS_FATAL ANY
 )
@@ -25,7 +25,7 @@ execute_process(
 execute_process(
   COMMAND "${LCOV_EXECUTABLE}"
           --extract "${_coverage_info}" "*/src/*"
-          --ignore-errors mismatch
+          --ignore-errors mismatch,negative
           --output-file "${_coverage_src_info}"
   COMMAND_ERROR_IS_FATAL ANY
 )

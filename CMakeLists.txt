@@ -13,7 +13,7 @@ add_library(project_options INTERFACE)
 target_compile_options(project_options INTERFACE -Wall -Wextra -Wpedantic -Werror)
 
 if(ENABLE_COVERAGE)
-  target_compile_options(project_options INTERFACE --coverage)
+  target_compile_options(project_options INTERFACE --coverage -fprofile-update=atomic)
   target_link_options(project_options INTERFACE --coverage)
 endif()
 
