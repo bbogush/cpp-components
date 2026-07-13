@@ -53,6 +53,7 @@ public:
     void set_disconnect_handler(DisconnectHandler handler);
     void set_ping_message_generator(PingMessageGenerator generator);
     void set_ping_interval(std::chrono::seconds interval);
+    void set_read_timeout(std::chrono::seconds timeout);
 
     bool is_connected() const;
 
@@ -107,11 +108,16 @@ private:
     void stop_ping_timer();
     void handle_ping_timer(const std::error_code &ec);
 
+    void start_read_timer();
+    void stop_read_timer();
+    void handle_read_timeout(const std::error_code &ec);
+
     executor::Executor &executor;
     boost::asio::ssl::context ssl_context;
     Tcp::resolver resolver;
     WebSocketStream ws;
     timer::Timer ping_timer;
+    timer::Timer read_timer;
     boost::beast::flat_buffer read_buffer;
     std::string host;
     std::string port;
@@ -123,6 +129,7 @@ private:
     DisconnectHandler disconnect_handler;
     PingMessageGenerator ping_message_generator;
     std::chrono::seconds ping_interval { 0 };
+    std::chrono::seconds read_timeout { 0 };
 };
 
 } // namespace cpp_components::secure_websocket_client

@@ -34,7 +34,7 @@ std::shared_ptr<SecureWebSocketClient> SecureWebSocketClient::create(executor::E
 
 SecureWebSocketClient::SecureWebSocketClient(executor::Executor &executor) :
     executor(executor), ssl_context(ssl::context::tlsv12_client), resolver(executor.get_context()),
-    ws(executor.get_context(), ssl_context), ping_timer(executor)
+    ws(executor.get_context(), ssl_context), ping_timer(executor), read_timer(executor)
 {
     ssl_context.set_default_verify_paths();
     ssl_context.set_verify_mode(ssl::verify_peer);
@@ -42,17 +42,7 @@ SecureWebSocketClient::SecureWebSocketClient(executor::Executor &executor) :
 
 SecureWebSocketClient::~SecureWebSocketClient()
 {
-    const auto current_state = state.load(std::memory_order_acquire);
-    if (current_state != ConnectionState::connecting &&
-        current_state != ConnectionState::connected) {
-        return;
-    }
-
-    set_state(ConnectionState::closing);
-    cancel_pending_operations();
-    fail_pending_writes();
-    close_socket();
-    set_state(ConnectionState::disconnected);
+    do_close(nullptr);
 }
 
 void SecureWebSocketClient::set_ca_certificate(const std::string &ca_certificate_file)
@@ -137,6 +127,21 @@ void SecureWebSocketClient::set_ping_interval(std::chrono::seconds interval)
         self->start_ping_timer();
     };
     executor.post(std::move(interval_handler));
+}
+
+void SecureWebSocketClient::set_read_timeout(std::chrono::seconds timeout)
+{
+    auto self = shared_from_this();
+    auto timeout_handler = [self, timeout]() {
+        self->read_timeout = timeout;
+        if (!self->is_connected()) {
+            return;
+        }
+
+        self->stop_read_timer();
+        self->start_read_timer();
+    };
+    executor.post(std::move(timeout_handler));
 }
 
 bool SecureWebSocketClient::is_connected() const
@@ -261,6 +266,8 @@ void SecureWebSocketClient::handle_websocket_handshake(const ConnectHandler &han
 
 void SecureWebSocketClient::start_read()
 {
+    start_read_timer();
+
     auto self = shared_from_this();
     auto read_handler = [self](const boost::system::error_code &ec, std::size_t bytes_transferred) {
         self->handle_read(ec, bytes_transferred);
@@ -360,6 +367,12 @@ void SecureWebSocketClient::do_close(const CloseHandler &handler)
     }
 
     set_state(ConnectionState::closing);
+    // Disable Beast timeouts so a cancelled handshake does not leave a timer keeping
+    // the executor alive until handshake_timeout expires.
+    websocket::stream_base::timeout timeout_option {};
+    timeout_option.handshake_timeout = websocket::stream_base::none();
+    timeout_option.idle_timeout = websocket::stream_base::none();
+    ws.set_option(timeout_option);
     cancel_pending_operations();
     fail_pending_writes();
     close_socket();
@@ -382,6 +395,7 @@ bool SecureWebSocketClient::is_connecting() const
 void SecureWebSocketClient::cancel_pending_operations()
 {
     stop_ping_timer();
+    stop_read_timer();
     resolver.cancel();
     beast::get_lowest_layer(ws).cancel();
 }
@@ -407,15 +421,7 @@ void SecureWebSocketClient::fail_pending_writes()
 void SecureWebSocketClient::fail_connection(const boost::system::error_code &ec,
     const ConnectHandler &handler)
 {
-    // Disable Beast timeouts so a failed handshake does not leave a timer keeping
-    // the executor alive until handshake_timeout expires.
-    websocket::stream_base::timeout timeout_option {};
-    timeout_option.handshake_timeout = websocket::stream_base::none();
-    timeout_option.idle_timeout = websocket::stream_base::none();
-    ws.set_option(timeout_option);
-    cancel_pending_operations();
-    close_socket();
-    set_state(ConnectionState::disconnected);
+    do_close(nullptr);
     if (handler) {
         handler(static_cast<std::error_code>(ec));
     }
@@ -427,8 +433,7 @@ void SecureWebSocketClient::handle_unexpected_disconnect(const boost::system::er
         return;
     }
 
-    set_state(ConnectionState::disconnected);
-    stop_ping_timer();
+    do_close(nullptr);
     if (disconnect_handler) {
         disconnect_handler(static_cast<std::error_code>(ec));
     }
@@ -462,6 +467,32 @@ void SecureWebSocketClient::handle_ping_timer(const std::error_code &ec)
     }
 
     start_ping_timer();
+}
+
+void SecureWebSocketClient::start_read_timer()
+{
+    if (read_timeout <= std::chrono::seconds::zero() || !is_connected()) {
+        return;
+    }
+
+    read_timer.expires_after(read_timeout);
+    auto self = shared_from_this();
+    read_timer.async_wait(
+        [self](const std::error_code &ec) { self->handle_read_timeout(ec); });
+}
+
+void SecureWebSocketClient::stop_read_timer()
+{
+    read_timer.cancel();
+}
+
+void SecureWebSocketClient::handle_read_timeout(const std::error_code &ec)
+{
+    if (ec || !is_connected() || read_timeout <= std::chrono::seconds::zero()) {
+        return;
+    }
+
+    handle_unexpected_disconnect(std::make_error_code(std::errc::timed_out));
 }
 
 } // namespace cpp_components::secure_websocket_client

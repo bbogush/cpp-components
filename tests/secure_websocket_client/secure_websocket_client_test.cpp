@@ -566,3 +566,35 @@ TEST(SecureWebSocketClientTest, ping_interval_sends_ping_and_receives_pong)
     EXPECT_FALSE(client->is_connected());
     executor.stop();
 }
+
+TEST(SecureWebSocketClientTest, read_timeout_disconnects_when_idle)
+{
+    const auto port = start_secure_echo_server();
+    const auto port_string = std::to_string(port);
+
+    cpp_components::executor::Executor executor {};
+    auto client = cpp_components::secure_websocket_client::SecureWebSocketClient::create(executor);
+    client->set_ca_certificate(TEST_CERT_DIR "/test-cert.pem");
+    client->set_read_timeout(std::chrono::seconds { 1 });
+
+    std::promise<void> connected;
+    const auto connected_future = connected.get_future().share();
+    client->connect("localhost", port_string, "/", [&connected](const std::error_code &ec) {
+        if (!ec) {
+            connected.set_value();
+        }
+    });
+
+    ASSERT_TRUE(wait_ready(connected_future));
+    EXPECT_TRUE(client->is_connected());
+
+    std::promise<std::error_code> disconnected;
+    const auto disconnected_future = disconnected.get_future().share();
+    client->set_disconnect_handler(
+        [&disconnected](const std::error_code &ec) { disconnected.set_value(ec); });
+
+    ASSERT_TRUE(wait_ready(disconnected_future));
+    EXPECT_EQ(disconnected_future.get(), std::make_error_code(std::errc::timed_out));
+    EXPECT_FALSE(client->is_connected());
+    executor.stop();
+}
