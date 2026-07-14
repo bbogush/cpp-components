@@ -10,6 +10,7 @@
 #include <atomic>
 #include <chrono>
 #include <future>
+#include <system_error>
 #include <thread>
 
 namespace {
@@ -150,4 +151,54 @@ TEST(ExecutorTest, force_stop_from_another_thread)
 
     ASSERT_TRUE(wait_ready(stop_done_future));
     stopper.join();
+}
+
+TEST(ExecutorTest, set_priority_rejects_invalid_value)
+{
+    cpp_components::executor::Executor executor {};
+    EXPECT_EQ(executor.set_priority(-1), std::make_error_code(std::errc::invalid_argument));
+    EXPECT_EQ(executor.set_priority(executor.get_max_priority() + 1),
+        std::make_error_code(std::errc::invalid_argument));
+    executor.stop();
+}
+
+TEST(ExecutorTest, set_priority_rejects_stopped_executor)
+{
+    cpp_components::executor::Executor executor {};
+    executor.stop();
+
+    EXPECT_EQ(executor.set_priority(1), std::make_error_code(std::errc::invalid_argument));
+}
+
+TEST(ExecutorTest, set_priority_zero_uses_other_policy)
+{
+    cpp_components::executor::Executor executor {};
+
+    ASSERT_FALSE(executor.set_priority(0));
+
+    int got = -1;
+    ASSERT_FALSE(executor.get_priority(got));
+    EXPECT_EQ(got, 0);
+
+    executor.stop();
+}
+
+TEST(ExecutorTest, get_priority_returns_current_value)
+{
+    cpp_components::executor::Executor executor {};
+
+    int priority = -1;
+    EXPECT_FALSE(executor.get_priority(priority));
+    EXPECT_GE(priority, 0);
+
+    executor.stop();
+}
+
+TEST(ExecutorTest, get_priority_rejects_stopped_executor)
+{
+    cpp_components::executor::Executor executor {};
+    executor.stop();
+
+    int priority = -1;
+    EXPECT_EQ(executor.get_priority(priority), std::make_error_code(std::errc::invalid_argument));
 }

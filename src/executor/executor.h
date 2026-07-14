@@ -8,6 +8,7 @@
 
 #include <boost/asio.hpp>
 #include <memory>
+#include <system_error>
 #include <thread>
 
 namespace cpp_components::executor {
@@ -22,6 +23,9 @@ public:
     Executor &operator=(Executor &&) = delete;
 
     void stop(bool is_force_stop = false);
+    std::error_code set_priority(int priority);
+    std::error_code get_priority(int &priority);
+    int get_max_priority() const;
 
     inline boost::asio::io_context &get_context()
     {
