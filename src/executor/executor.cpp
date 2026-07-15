@@ -84,6 +84,28 @@ std::error_code Executor::get_priority(int &priority)
     return {};
 }
 
+std::error_code Executor::set_cpu_affinity(int cpu_id)
+{
+    if (cpu_id < 0) {
+        return std::make_error_code(std::errc::invalid_argument);
+    }
+
+    if (!thread.joinable()) {
+        return std::make_error_code(std::errc::invalid_argument);
+    }
+
+    cpu_set_t cpuset;
+    CPU_ZERO(&cpuset);
+    CPU_SET(cpu_id, &cpuset);
+
+    const int ret = pthread_setaffinity_np(thread.native_handle(), sizeof(cpu_set_t), &cpuset);
+    if (ret != 0) {
+        return { ret, std::generic_category() };
+    }
+
+    return {};
+}
+
 int Executor::get_max_priority() const
 {
     return sched_get_priority_max(SCHED_RR);

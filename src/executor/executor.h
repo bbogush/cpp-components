@@ -25,6 +25,7 @@ public:
     void stop(bool is_force_stop = false);
     std::error_code set_priority(int priority);
     std::error_code get_priority(int &priority);
+    std::error_code set_cpu_affinity(int cpu_id);
     int get_max_priority() const;
 
     inline boost::asio::io_context &get_context()

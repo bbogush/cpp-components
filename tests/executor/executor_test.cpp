@@ -202,3 +202,27 @@ TEST(ExecutorTest, get_priority_rejects_stopped_executor)
     int priority = -1;
     EXPECT_EQ(executor.get_priority(priority), std::make_error_code(std::errc::invalid_argument));
 }
+
+TEST(ExecutorTest, set_cpu_affinity_rejects_invalid_value)
+{
+    cpp_components::executor::Executor executor {};
+    EXPECT_EQ(executor.set_cpu_affinity(-1), std::make_error_code(std::errc::invalid_argument));
+    executor.stop();
+}
+
+TEST(ExecutorTest, set_cpu_affinity_rejects_stopped_executor)
+{
+    cpp_components::executor::Executor executor {};
+    executor.stop();
+
+    EXPECT_EQ(executor.set_cpu_affinity(0), std::make_error_code(std::errc::invalid_argument));
+}
+
+TEST(ExecutorTest, set_cpu_affinity_binds_to_cpu_zero)
+{
+    cpp_components::executor::Executor executor {};
+
+    ASSERT_FALSE(executor.set_cpu_affinity(0));
+
+    executor.stop();
+}
