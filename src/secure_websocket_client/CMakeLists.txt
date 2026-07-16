@@ -1,7 +1,9 @@
 find_package(Boost REQUIRED COMPONENTS system)
 find_package(OpenSSL REQUIRED)
 
-add_library(secure_websocket_client secure_websocket_client.cpp)
+add_library(secure_websocket_client
+  secure_websocket_client.cpp
+  reconnecting_secure_websocket_client.cpp)
 
 target_include_directories(secure_websocket_client PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/..)
 

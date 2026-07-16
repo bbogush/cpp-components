@@ -43,7 +43,7 @@ public:
     SecureWebSocketClient &operator=(const SecureWebSocketClient &) = delete;
     SecureWebSocketClient &operator=(SecureWebSocketClient &&) = delete;
 
-    ~SecureWebSocketClient();
+    virtual ~SecureWebSocketClient();
 
     void connect(std::string host, std::string port, std::string resource, ConnectHandler handler);
     void write(std::string message, WriteHandler handler);
@@ -59,11 +59,24 @@ public:
 
     void set_ca_certificate(const std::string &ca_certificate_file);
 
-private:
+protected:
     using Tcp = boost::asio::ip::tcp;
     using WebSocketStream =
         boost::beast::websocket::stream<boost::asio::ssl::stream<boost::beast::tcp_stream>>;
 
+    explicit SecureWebSocketClient(executor::Executor &executor);
+
+    void do_connect(ConnectHandler handler);
+    void do_close(const CloseHandler &handler);
+
+    virtual void on_unexpected_disconnect(const std::error_code &ec);
+
+    executor::Executor &executor;
+    std::string host;
+    std::string port;
+    std::string resource;
+
+private:
     enum class ConnectionState {
         disconnected,
         connecting,
@@ -76,9 +89,6 @@ private:
         WriteHandler handler;
     };
 
-    explicit SecureWebSocketClient(executor::Executor &executor);
-
-    void do_connect(ConnectHandler handler);
     void handle_resolve(ConnectHandler handler, const boost::system::error_code &ec,
         const Tcp::resolver::results_type &results);
     void handle_connect(ConnectHandler handler, const boost::system::error_code &ec,
@@ -94,10 +104,10 @@ private:
     void start_write();
     void handle_write(const boost::system::error_code &ec, std::size_t bytes_transferred);
 
-    void do_close(const CloseHandler &handler);
-
     void set_state(ConnectionState new_state);
     bool is_connecting() const;
+    void create_stream();
+    void destroy_stream();
     void cancel_pending_operations();
     void close_socket();
     void fail_pending_writes();
@@ -112,16 +122,12 @@ private:
     void stop_read_timer();
     void handle_read_timeout(const std::error_code &ec);
 
-    executor::Executor &executor;
     boost::asio::ssl::context ssl_context;
     Tcp::resolver resolver;
-    WebSocketStream ws;
+    std::unique_ptr<WebSocketStream> ws;
     timer::Timer ping_timer;
     timer::Timer read_timer;
     boost::beast::flat_buffer read_buffer;
-    std::string host;
-    std::string port;
-    std::string resource;
     std::deque<WriteRequest> write_queue;
     bool write_in_progress = false;
     std::atomic<ConnectionState> state { ConnectionState::disconnected };

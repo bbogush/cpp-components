@@ -34,7 +34,7 @@ std::shared_ptr<SecureWebSocketClient> SecureWebSocketClient::create(executor::E
 
 SecureWebSocketClient::SecureWebSocketClient(executor::Executor &executor) :
     executor(executor), ssl_context(ssl::context::tlsv12_client), resolver(executor.get_context()),
-    ws(executor.get_context(), ssl_context), ping_timer(executor), read_timer(executor)
+    ping_timer(executor), read_timer(executor)
 {
     ssl_context.set_default_verify_paths();
     ssl_context.set_verify_mode(ssl::verify_peer);
@@ -159,6 +159,7 @@ void SecureWebSocketClient::do_connect(ConnectHandler handler)
     }
 
     set_state(ConnectionState::connecting);
+    create_stream();
 
     auto self = shared_from_this();
     auto resolve_handler = [self, handler = std::move(handler)](const boost::system::error_code &ec,
@@ -171,7 +172,7 @@ void SecureWebSocketClient::do_connect(ConnectHandler handler)
 void SecureWebSocketClient::handle_resolve(ConnectHandler handler,
     const boost::system::error_code &ec, const Tcp::resolver::results_type &results)
 {
-    if (!is_connecting()) {
+    if (!is_connecting() || !ws) {
         return;
     }
 
@@ -181,19 +182,19 @@ void SecureWebSocketClient::handle_resolve(ConnectHandler handler,
     }
 
     auto self = shared_from_this();
-    beast::get_lowest_layer(ws).expires_after(connect_timeout);
+    beast::get_lowest_layer(*ws).expires_after(connect_timeout);
     auto connect_handler =
         [self, handler = std::move(handler)](const boost::system::error_code &connect_ec,
             const Tcp::endpoint &endpoint) mutable {
             self->handle_connect(std::move(handler), connect_ec, endpoint);
         };
-    beast::get_lowest_layer(ws).async_connect(results, std::move(connect_handler));
+    beast::get_lowest_layer(*ws).async_connect(results, std::move(connect_handler));
 }
 
 void SecureWebSocketClient::handle_connect(ConnectHandler handler,
     const boost::system::error_code &ec, const Tcp::endpoint &)
 {
-    if (!is_connecting()) {
+    if (!is_connecting() || !ws) {
         return;
     }
 
@@ -202,29 +203,29 @@ void SecureWebSocketClient::handle_connect(ConnectHandler handler,
         return;
     }
 
-    beast::get_lowest_layer(ws).expires_after(connect_timeout);
+    beast::get_lowest_layer(*ws).expires_after(connect_timeout);
 
-    if (!SSL_set_tlsext_host_name(ws.next_layer().native_handle(), host.c_str())) {
+    if (!SSL_set_tlsext_host_name(ws->next_layer().native_handle(), host.c_str())) {
         fail_connection(boost::system::error_code(static_cast<int>(::ERR_get_error()),
                             boost::asio::error::get_ssl_category()),
             handler);
         return;
     }
 
-    ws.next_layer().set_verify_callback(ssl::host_name_verification(host));
+    ws->next_layer().set_verify_callback(ssl::host_name_verification(host));
 
     auto self = shared_from_this();
     auto ssl_handshake_handler = [self, handler = std::move(handler)](
                                      const boost::system::error_code &ssl_ec) mutable {
         self->handle_ssl_handshake(std::move(handler), ssl_ec);
     };
-    ws.next_layer().async_handshake(ssl::stream_base::client, std::move(ssl_handshake_handler));
+    ws->next_layer().async_handshake(ssl::stream_base::client, std::move(ssl_handshake_handler));
 }
 
 void SecureWebSocketClient::handle_ssl_handshake(ConnectHandler handler,
     const boost::system::error_code &ec)
 {
-    if (!is_connecting()) {
+    if (!is_connecting() || !ws) {
         return;
     }
 
@@ -233,21 +234,21 @@ void SecureWebSocketClient::handle_ssl_handshake(ConnectHandler handler,
         return;
     }
 
-    beast::get_lowest_layer(ws).expires_never();
-    ws.set_option(websocket::stream_base::timeout::suggested(beast::role_type::client));
+    beast::get_lowest_layer(*ws).expires_never();
+    ws->set_option(websocket::stream_base::timeout::suggested(beast::role_type::client));
 
     auto self = shared_from_this();
     auto websocket_handshake_handler = [self, handler = std::move(handler)](
                                            const boost::system::error_code &handshake_ec) mutable {
         self->handle_websocket_handshake(handler, handshake_ec);
     };
-    ws.async_handshake(host, resource, std::move(websocket_handshake_handler));
+    ws->async_handshake(host, resource, std::move(websocket_handshake_handler));
 }
 
 void SecureWebSocketClient::handle_websocket_handshake(const ConnectHandler &handler,
     const boost::system::error_code &ec)
 {
-    if (!is_connecting()) {
+    if (!is_connecting() || !ws) {
         return;
     }
 
@@ -266,13 +267,17 @@ void SecureWebSocketClient::handle_websocket_handshake(const ConnectHandler &han
 
 void SecureWebSocketClient::start_read()
 {
+    if (!ws) {
+        return;
+    }
+
     start_read_timer();
 
     auto self = shared_from_this();
     auto read_handler = [self](const boost::system::error_code &ec, std::size_t bytes_transferred) {
         self->handle_read(ec, bytes_transferred);
     };
-    ws.async_read(read_buffer, std::move(read_handler));
+    ws->async_read(read_buffer, std::move(read_handler));
 }
 
 void SecureWebSocketClient::handle_read(const boost::system::error_code &ec, std::size_t)
@@ -296,7 +301,7 @@ void SecureWebSocketClient::handle_read(const boost::system::error_code &ec, std
 
 void SecureWebSocketClient::do_write(std::string message, WriteHandler handler)
 {
-    if (state.load(std::memory_order_acquire) != ConnectionState::connected) {
+    if (state.load(std::memory_order_acquire) != ConnectionState::connected || !ws) {
         if (handler) {
             handler(std::make_error_code(std::errc::not_connected));
         }
@@ -311,7 +316,7 @@ void SecureWebSocketClient::do_write(std::string message, WriteHandler handler)
 
 void SecureWebSocketClient::start_write()
 {
-    if (write_in_progress || write_queue.empty()) {
+    if (write_in_progress || write_queue.empty() || !ws) {
         return;
     }
 
@@ -321,7 +326,7 @@ void SecureWebSocketClient::start_write()
                              std::size_t bytes_transferred) {
         self->handle_write(ec, bytes_transferred);
     };
-    ws.async_write(net::buffer(write_queue.front().message), std::move(write_handler));
+    ws->async_write(net::buffer(write_queue.front().message), std::move(write_handler));
 }
 
 void SecureWebSocketClient::handle_write(const boost::system::error_code &ec, std::size_t)
@@ -369,13 +374,16 @@ void SecureWebSocketClient::do_close(const CloseHandler &handler)
     set_state(ConnectionState::closing);
     // Disable Beast timeouts so a cancelled handshake does not leave a timer keeping
     // the executor alive until handshake_timeout expires.
-    websocket::stream_base::timeout timeout_option {};
-    timeout_option.handshake_timeout = websocket::stream_base::none();
-    timeout_option.idle_timeout = websocket::stream_base::none();
-    ws.set_option(timeout_option);
+    if (ws) {
+        websocket::stream_base::timeout timeout_option {};
+        timeout_option.handshake_timeout = websocket::stream_base::none();
+        timeout_option.idle_timeout = websocket::stream_base::none();
+        ws->set_option(timeout_option);
+    }
     cancel_pending_operations();
     fail_pending_writes();
     close_socket();
+    destroy_stream();
     set_state(ConnectionState::disconnected);
     if (handler) {
         handler({});
@@ -392,18 +400,36 @@ bool SecureWebSocketClient::is_connecting() const
     return state.load(std::memory_order_acquire) == ConnectionState::connecting;
 }
 
+void SecureWebSocketClient::create_stream()
+{
+    destroy_stream();
+    read_buffer.consume(read_buffer.size());
+    ws = std::make_unique<WebSocketStream>(executor.get_context(), ssl_context);
+}
+
+void SecureWebSocketClient::destroy_stream()
+{
+    ws.reset();
+}
+
 void SecureWebSocketClient::cancel_pending_operations()
 {
     stop_ping_timer();
     stop_read_timer();
     resolver.cancel();
-    beast::get_lowest_layer(ws).cancel();
+    if (ws) {
+        beast::get_lowest_layer(*ws).cancel();
+    }
 }
 
 void SecureWebSocketClient::close_socket()
 {
+    if (!ws) {
+        return;
+    }
+
     boost::system::error_code ec;
-    beast::get_lowest_layer(ws).socket().close(ec);
+    beast::get_lowest_layer(*ws).socket().close(ec);
 }
 
 void SecureWebSocketClient::fail_pending_writes()
@@ -434,8 +460,13 @@ void SecureWebSocketClient::handle_unexpected_disconnect(const boost::system::er
     }
 
     do_close(nullptr);
+    on_unexpected_disconnect(static_cast<std::error_code>(ec));
+}
+
+void SecureWebSocketClient::on_unexpected_disconnect(const std::error_code &ec)
+{
     if (disconnect_handler) {
-        disconnect_handler(static_cast<std::error_code>(ec));
+        disconnect_handler(ec);
     }
 }
 

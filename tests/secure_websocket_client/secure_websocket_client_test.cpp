@@ -4,6 +4,7 @@
  */
 
 #include "executor/executor.h"
+#include "secure_websocket_client/reconnecting_secure_websocket_client.h"
 #include "secure_websocket_client/secure_websocket_client.h"
 
 #include <gtest/gtest.h>
@@ -33,63 +34,91 @@ bool wait_ready(const std::shared_future<T> &future)
     return future.wait_for(wait_timeout) == std::future_status::ready;
 }
 
-uint16_t start_secure_echo_server(bool close_after_first_message = false)
+void run_secure_echo_session(boost::asio::ip::tcp::socket socket,
+    bool close_after_first_message)
 {
     namespace beast = boost::beast;
     namespace websocket = beast::websocket;
-    namespace net = boost::asio;
-    namespace ssl = net::ssl;
-    using tcp = net::ip::tcp;
+    namespace ssl = boost::asio::ssl;
     using websocket_stream = websocket::stream<ssl::stream<beast::tcp_stream>>;
+
+    ssl::context ssl_context(ssl::context::tlsv12_server);
+    ssl_context.use_certificate_chain_file(TEST_CERT_DIR "/test-cert.pem");
+    ssl_context.use_private_key_file(TEST_CERT_DIR "/test-key.pem", ssl::context::file_format::pem);
+
+    boost::system::error_code ec;
+    websocket_stream ws(ssl::stream<beast::tcp_stream>(std::move(socket), ssl_context));
+    ws.next_layer().handshake(ssl::stream_base::server, ec);
+    if (ec) {
+        return;
+    }
+
+    ws.accept(ec);
+    if (ec) {
+        return;
+    }
+
+    for (;;) {
+        beast::flat_buffer buffer;
+        ws.read(buffer, ec);
+        if (ec) {
+            break;
+        }
+
+        ws.write(buffer.data(), ec);
+        if (ec) {
+            break;
+        }
+        buffer.consume(buffer.size());
+
+        if (close_after_first_message) {
+            break;
+        }
+    }
+}
+
+uint16_t start_secure_echo_server(bool close_after_first_message = false,
+    int accept_count = 1)
+{
+    namespace net = boost::asio;
+    using tcp = net::ip::tcp;
 
     auto ioc = std::make_shared<net::io_context>();
     auto acceptor = std::make_shared<tcp::acceptor>(*ioc, tcp::endpoint(tcp::v4(), 0));
     const auto port = acceptor->local_endpoint().port();
 
-    std::thread([ioc, acceptor, close_after_first_message]() {
-        ssl::context ssl_context(ssl::context::tlsv12_server);
-        ssl_context.use_certificate_chain_file(TEST_CERT_DIR "/test-cert.pem");
-        ssl_context.use_private_key_file(TEST_CERT_DIR "/test-key.pem",
-            ssl::context::file_format::pem);
+    std::thread([ioc, acceptor, close_after_first_message, accept_count]() {
+        for (int i = 0; i < accept_count; ++i) {
+            tcp::socket socket(*ioc);
+            boost::system::error_code ec;
+            acceptor->accept(socket, ec);
+            if (ec) {
+                return;
+            }
+            run_secure_echo_session(std::move(socket), close_after_first_message);
+        }
+    }).detach();
 
+    return port;
+}
+
+void start_secure_echo_server_on_port(uint16_t port)
+{
+    namespace net = boost::asio;
+    using tcp = net::ip::tcp;
+
+    auto ioc = std::make_shared<net::io_context>();
+    auto acceptor = std::make_shared<tcp::acceptor>(*ioc, tcp::endpoint(tcp::v4(), port));
+
+    std::thread([ioc, acceptor]() {
         tcp::socket socket(*ioc);
         boost::system::error_code ec;
         acceptor->accept(socket, ec);
         if (ec) {
             return;
         }
-
-        websocket_stream ws(ssl::stream<beast::tcp_stream>(std::move(socket), ssl_context));
-        ws.next_layer().handshake(ssl::stream_base::server, ec);
-        if (ec) {
-            return;
-        }
-
-        ws.accept(ec);
-        if (ec) {
-            return;
-        }
-
-        for (;;) {
-            beast::flat_buffer buffer;
-            ws.read(buffer, ec);
-            if (ec) {
-                break;
-            }
-
-            ws.write(buffer.data(), ec);
-            if (ec) {
-                break;
-            }
-            buffer.consume(buffer.size());
-
-            if (close_after_first_message) {
-                break;
-            }
-        }
+        run_secure_echo_session(std::move(socket), false);
     }).detach();
-
-    return port;
 }
 
 uint16_t closed_port()
@@ -522,6 +551,61 @@ TEST(SecureWebSocketClientTest, double_connect_reports_already_connected)
     executor.stop();
 }
 
+TEST(SecureWebSocketClientTest, reconnect_after_close_reuses_client)
+{
+    const auto port = start_secure_echo_server(false, 2);
+    const auto port_string = std::to_string(port);
+
+    cpp_components::executor::Executor executor {};
+    auto client = cpp_components::secure_websocket_client::SecureWebSocketClient::create(executor);
+    client->set_ca_certificate(TEST_CERT_DIR "/test-cert.pem");
+
+    for (int attempt = 0; attempt < 2; ++attempt) {
+        std::promise<void> connected;
+        const auto connected_future = connected.get_future().share();
+        client->connect("localhost", port_string, "/", [&connected](const std::error_code &ec) {
+            if (!ec) {
+                connected.set_value();
+            }
+        });
+
+        ASSERT_TRUE(wait_ready(connected_future)) << "attempt " << attempt;
+        EXPECT_TRUE(client->is_connected());
+
+        std::promise<std::string> message_received;
+        const auto message_received_future = message_received.get_future().share();
+        client->set_message_handler([&message_received](const char *data, size_t size) {
+            message_received.set_value(std::string(data, size));
+        });
+
+        const auto payload = "ping-" + std::to_string(attempt);
+        std::promise<void> message_written;
+        const auto message_written_future = message_written.get_future().share();
+        client->write(payload, [&message_written](const std::error_code &ec) {
+            if (!ec) {
+                message_written.set_value();
+            }
+        });
+
+        ASSERT_TRUE(wait_ready(message_written_future)) << "attempt " << attempt;
+        ASSERT_TRUE(wait_ready(message_received_future)) << "attempt " << attempt;
+        EXPECT_EQ(message_received_future.get(), payload);
+
+        std::promise<void> closed;
+        const auto closed_future = closed.get_future().share();
+        client->close([&closed](const std::error_code &ec) {
+            if (!ec) {
+                closed.set_value();
+            }
+        });
+
+        ASSERT_TRUE(wait_ready(closed_future)) << "attempt " << attempt;
+        EXPECT_FALSE(client->is_connected());
+    }
+
+    executor.stop();
+}
+
 TEST(SecureWebSocketClientTest, ping_interval_sends_ping_and_receives_pong)
 {
     constexpr auto ping_message = "custom-ping";
@@ -596,5 +680,190 @@ TEST(SecureWebSocketClientTest, read_timeout_disconnects_when_idle)
     ASSERT_TRUE(wait_ready(disconnected_future));
     EXPECT_EQ(disconnected_future.get(), std::make_error_code(std::errc::timed_out));
     EXPECT_FALSE(client->is_connected());
+    executor.stop();
+}
+
+TEST(ReconnectingSecureWebSocketClientTest, reconnects_after_unexpected_disconnect)
+{
+    const auto port = start_secure_echo_server(true, 2);
+    const auto port_string = std::to_string(port);
+
+    cpp_components::executor::Executor executor {};
+    auto client =
+        cpp_components::secure_websocket_client::ReconnectingSecureWebSocketClient::create(
+            executor);
+    client->set_ca_certificate(TEST_CERT_DIR "/test-cert.pem");
+    client->set_initial_reconnect_delay(std::chrono::milliseconds { 100 });
+    client->set_max_reconnect_delay(std::chrono::seconds { 1 });
+
+    std::promise<void> first_connected;
+    std::promise<void> second_connected;
+    auto first_connected_future = first_connected.get_future().share();
+    auto second_connected_future = second_connected.get_future().share();
+    std::atomic<int> connect_count { 0 };
+    client->connect("localhost", port_string, "/",
+        [&connect_count, &first_connected, &second_connected](const std::error_code &ec) {
+            if (ec) {
+                return;
+            }
+
+            const auto count = connect_count.fetch_add(1) + 1;
+            if (count == 1) {
+                first_connected.set_value();
+            } else if (count == 2) {
+                second_connected.set_value();
+            }
+        });
+
+    ASSERT_TRUE(wait_ready(first_connected_future));
+    EXPECT_TRUE(client->is_connected());
+
+    std::promise<std::error_code> disconnected;
+    const auto disconnected_future = disconnected.get_future().share();
+    client->set_disconnect_handler(
+        [&disconnected](const std::error_code &ec) { disconnected.set_value(ec); });
+
+    std::promise<void> message_written;
+    const auto message_written_future = message_written.get_future().share();
+    client->write("ping", [&message_written](const std::error_code &ec) {
+        if (!ec) {
+            message_written.set_value();
+        }
+    });
+
+    ASSERT_TRUE(wait_ready(message_written_future));
+    ASSERT_TRUE(wait_ready(disconnected_future));
+    EXPECT_TRUE(disconnected_future.get());
+    ASSERT_TRUE(wait_ready(second_connected_future));
+    EXPECT_TRUE(client->is_connected());
+
+    std::promise<void> closed;
+    const auto closed_future = closed.get_future().share();
+    client->close([&closed](const std::error_code &ec) {
+        if (!ec) {
+            closed.set_value();
+        }
+    });
+
+    ASSERT_TRUE(wait_ready(closed_future));
+    EXPECT_FALSE(client->is_connected());
+    executor.stop();
+}
+
+
+TEST(SecureWebSocketClientTest, connect_after_connection_refused_reuses_client)
+{
+    const auto refused_port = closed_port();
+    const auto good_port = start_secure_echo_server();
+    const auto refused_port_string = std::to_string(refused_port);
+    const auto good_port_string = std::to_string(good_port);
+
+    cpp_components::executor::Executor executor {};
+    auto client = cpp_components::secure_websocket_client::SecureWebSocketClient::create(executor);
+    client->set_ca_certificate(TEST_CERT_DIR "/test-cert.pem");
+
+    std::promise<std::error_code> first_result;
+    const auto first_future = first_result.get_future().share();
+    client->connect("localhost", refused_port_string, "/",
+        [&first_result](const std::error_code &ec) { first_result.set_value(ec); });
+
+    ASSERT_TRUE(wait_ready(first_future));
+    EXPECT_TRUE(first_future.get());
+    EXPECT_FALSE(client->is_connected());
+
+    std::promise<void> connected;
+    const auto connected_future = connected.get_future().share();
+    client->connect("localhost", good_port_string, "/", [&connected](const std::error_code &ec) {
+        if (!ec) {
+            connected.set_value();
+        } else {
+            ADD_FAILURE() << "second connect failed: " << ec.message();
+        }
+    });
+
+    ASSERT_TRUE(wait_ready(connected_future));
+    EXPECT_TRUE(client->is_connected());
+
+    std::promise<void> closed;
+    const auto closed_future = closed.get_future().share();
+    client->close([&closed](const std::error_code &ec) {
+        if (!ec) {
+            closed.set_value();
+        }
+    });
+    ASSERT_TRUE(wait_ready(closed_future));
+    executor.stop();
+}
+
+TEST(ReconnectingSecureWebSocketClientTest, reconnects_after_initial_connect_failure)
+{
+    const auto port = closed_port();
+    const auto port_string = std::to_string(port);
+
+    cpp_components::executor::Executor executor {};
+    auto client =
+        cpp_components::secure_websocket_client::ReconnectingSecureWebSocketClient::create(
+            executor);
+    client->set_ca_certificate(TEST_CERT_DIR "/test-cert.pem");
+    client->set_initial_reconnect_delay(std::chrono::milliseconds { 100 });
+    client->set_max_reconnect_delay(std::chrono::seconds { 1 });
+
+    std::promise<void> connected;
+    const auto connected_future = connected.get_future().share();
+    client->connect("localhost", port_string, "/", [&connected](const std::error_code &ec) {
+        if (!ec) {
+            connected.set_value();
+        }
+    });
+
+    std::this_thread::sleep_for(std::chrono::milliseconds { 150 });
+    start_secure_echo_server_on_port(port);
+
+    ASSERT_TRUE(wait_ready(connected_future));
+    EXPECT_TRUE(client->is_connected());
+
+    std::promise<void> closed;
+    const auto closed_future = closed.get_future().share();
+    client->close([&closed](const std::error_code &ec) {
+        if (!ec) {
+            closed.set_value();
+        }
+    });
+
+    ASSERT_TRUE(wait_ready(closed_future));
+    EXPECT_FALSE(client->is_connected());
+    executor.stop();
+}
+
+TEST(ReconnectingSecureWebSocketClientTest, close_stops_reconnect_attempts)
+{
+    const auto port_string = std::to_string(closed_port());
+
+    cpp_components::executor::Executor executor {};
+    auto client =
+        cpp_components::secure_websocket_client::ReconnectingSecureWebSocketClient::create(
+            executor);
+    client->set_initial_reconnect_delay(std::chrono::seconds { 60 });
+    client->set_max_reconnect_delay(std::chrono::seconds { 60 });
+
+    std::atomic<bool> connect_handler_called { false };
+    client->connect("127.0.0.1", port_string, "/",
+        [&connect_handler_called](const std::error_code &) {
+            connect_handler_called.store(true);
+        });
+
+    std::this_thread::sleep_for(std::chrono::milliseconds { 100 });
+
+    std::promise<void> closed;
+    const auto closed_future = closed.get_future().share();
+    client->close([&closed](const std::error_code &ec) {
+        if (!ec) {
+            closed.set_value();
+        }
+    });
+
+    ASSERT_TRUE(wait_ready(closed_future));
+    EXPECT_FALSE(client->is_connected());
+    EXPECT_FALSE(connect_handler_called.load());
     executor.stop();
 }
