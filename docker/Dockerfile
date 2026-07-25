@@ -11,6 +11,7 @@ RUN apt-get update && apt-get install -y \
     git \
     lcov \
     libboost-dev \
+    libcurl4-openssl-dev \
     libssl-dev
 
 # Use a non-root user ubuntu

@@ -2,6 +2,7 @@ add_subdirectory(executor)
 add_subdirectory(timer)
 add_subdirectory(secure_websocket_client)
 add_subdirectory(https_client_async)
+add_subdirectory(https_multiplex_client)
 
 add_executable(${PROJECT_NAME} main.cpp)
 
