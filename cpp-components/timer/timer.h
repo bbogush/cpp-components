@@ -6,7 +6,7 @@
 #ifndef CPP_COMPONENTS_TIMER_H
 #define CPP_COMPONENTS_TIMER_H
 
-#include "executor/executor.h"
+#include "cpp-components/executor/executor.h"
 
 #include <boost/asio/steady_timer.hpp>
 

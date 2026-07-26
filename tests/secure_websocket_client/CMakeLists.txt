@@ -5,10 +5,7 @@ add_executable(secure_websocket_client_test secure_websocket_client_test.cpp)
 target_link_libraries(secure_websocket_client_test PRIVATE project_options)
 target_link_libraries(secure_websocket_client_test PRIVATE project_features)
 target_link_libraries(secure_websocket_client_test PRIVATE GTest::gtest_main)
-target_link_libraries(secure_websocket_client_test PRIVATE secure_websocket_client)
-target_link_libraries(secure_websocket_client_test PRIVATE executor)
-
-target_include_directories(secure_websocket_client_test PRIVATE ${PROJECT_SOURCE_DIR}/src)
+target_link_libraries(secure_websocket_client_test PRIVATE cpp-components)
 
 target_compile_definitions(secure_websocket_client_test PRIVATE
   TEST_CERT_DIR="${CMAKE_CURRENT_SOURCE_DIR}/certs")

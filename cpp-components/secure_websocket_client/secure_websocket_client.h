@@ -6,8 +6,8 @@
 #ifndef CPP_COMPONENTS_SECURE_WEBSOCKET_CLIENT_H
 #define CPP_COMPONENTS_SECURE_WEBSOCKET_CLIENT_H
 
-#include "executor/executor.h"
-#include "timer/timer.h"
+#include "cpp-components/executor/executor.h"
+#include "cpp-components/timer/timer.h"
 
 #include <boost/asio/ip/tcp.hpp>
 #include <boost/asio/ssl.hpp>

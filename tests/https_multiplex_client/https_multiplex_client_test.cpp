@@ -3,8 +3,8 @@
  *  it under the terms of the Apache License Version 2.0.
  */
 
-#include "executor/executor.h"
-#include "https_multiplex_client/https_multiplex_client.h"
+#include "cpp-components/executor/executor.h"
+#include "cpp-components/https_multiplex_client/https_multiplex_client.h"
 
 #include <gtest/gtest.h>
 
