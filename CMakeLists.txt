@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.20)
 project(cpp-components VERSION 0.1.0 LANGUAGES CXX)
 
 option(BUILD_TESTING "Build unit tests" OFF)
-option(ENABLE_COVERAGE "Instrument cpp-components/ targets for code coverage" OFF)
+option(ENABLE_COVERAGE "Instrument cpp_components/ targets for code coverage" OFF)
 option(ENABLE_CLANG_TIDY "Add clang-tidy static analysis target" OFF)
 
 if(ENABLE_CLANG_TIDY)
@@ -20,9 +20,8 @@ endif()
 add_library(project_features INTERFACE)
 target_compile_features(project_features INTERFACE cxx_std_20)
 
-add_subdirectory(cpp-components)
+add_subdirectory(cpp_components)
 
-# Avoid build of tests if part of another project
 if(CMAKE_PROJECT_NAME STREQUAL PROJECT_NAME)
   if(BUILD_TESTING)
     enable_testing()
@@ -36,7 +35,7 @@ if(CMAKE_PROJECT_NAME STREQUAL PROJECT_NAME)
               -DCOVERAGE_SOURCE_DIR=${CMAKE_SOURCE_DIR}
               -P ${CMAKE_SOURCE_DIR}/cmake/coverage_report.cmake
       WORKING_DIRECTORY "${CMAKE_BINARY_DIR}"
-      COMMENT "Generating cpp-components/ coverage report (lcov CLI + HTML)"
+      COMMENT "Generating cpp_components/ coverage report (lcov CLI + HTML)"
       USES_TERMINAL
       VERBATIM
     )
@@ -52,7 +51,7 @@ if(CMAKE_PROJECT_NAME STREQUAL PROJECT_NAME)
               -DCLANG_TIDY_JOBS=${CLANG_TIDY_JOBS}
               -P ${CMAKE_SOURCE_DIR}/cmake/clang_tidy.cmake
       WORKING_DIRECTORY "${CMAKE_BINARY_DIR}"
-      COMMENT "Running clang-tidy on cpp-components/"
+      COMMENT "Running clang-tidy on cpp_components/"
       USES_TERMINAL
       VERBATIM
     )

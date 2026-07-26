@@ -23,13 +23,13 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(cpp-components)
 
-target_link_libraries(my_app PRIVATE cpp-components::cpp-components)
+target_link_libraries(my_app PRIVATE cpp_components::cpp_components)
 ```
 
-Include headers with the `cpp-components/` prefix:
+Include headers with the `cpp_components/` prefix:
 
 ```cpp
-#include "cpp-components/executor/executor.h"
+#include "cpp_components/executor/executor.h"
 ```
 
 The consumer must provide Boost, OpenSSL, and libcurl (same packages as this project's Docker image).
@@ -78,8 +78,8 @@ CMake is the build system. Presets are defined in `CMakePresets.json`:
 | `debug` | `build/debug` | Unoptimized build with debug symbols |
 | `asan` | `build/asan` | Sanitizer-instrumented build |
 | `tests` | `build/tests` | Inherits `asan` with unit tests enabled |
-| `coverage` | `build/coverage` | Inherits `debug` with tests and `cpp-components/` coverage instrumentation |
-| `clang-tidy` | `build/clang-tidy` | Inherits `debug` with static analysis on `cpp-components/` |
+| `coverage` | `build/coverage` | Inherits `debug` with tests and `cpp_components/` coverage instrumentation |
+| `clang-tidy` | `build/clang-tidy` | Inherits `debug` with static analysis on `cpp_components/` |
 
 From inside the container (or locally with CMake installed):
 
@@ -102,7 +102,7 @@ cmake --preset asan
 cmake --build --preset asan
 ```
 
-The build product is the static library `libcpp-components.a` (for example under `build/release/`).
+The build product is the static library `libcpp_components.a` (for example under `build/release/`).
 
 Clean build outputs:
 
@@ -122,8 +122,8 @@ ctest --preset tests
 
 ## Coverage
 
-The `coverage` preset builds the `cpp-components/` targets with GCC coverage instrumentation
-(`--coverage`) and enables the unit tests. Coverage is scoped to `cpp-components/` — the
+The `coverage` preset builds the `cpp_components/` targets with GCC coverage instrumentation
+(`--coverage`) and enables the unit tests. Coverage is scoped to `cpp_components/` — the
 report filters out test sources and Google Test headers.
 
 Configure, build, and run the tests to produce coverage data, then build the
@@ -143,7 +143,7 @@ The last step writes an HTML report to
 ## Clang-Tidy
 
 Static analysis uses [clang-tidy](https://clang.llvm.org/extra/clang-tidy/) with
-the project `.clang-tidy` config. Analysis is scoped to `cpp-components/` and uses
+the project `.clang-tidy` config. Analysis is scoped to `cpp_components/` and uses
 `compile_commands.json` from the `clang-tidy` preset (included in the Docker
 image).
 
@@ -168,7 +168,7 @@ cmake --build --preset clang-tidy-check
 .
 ├── CMakeLists.txt          # Root CMake project
 ├── CMakePresets.json       # Release, debug, tests, ASan, coverage, and clang-tidy presets
-├── cpp-components/         # Library sources and public headers
+├── cpp_components/         # Library sources and public headers
 ├── tests/                  # Google Test unit tests
 ├── docker/                 # Docker image and helper scripts
 └── .devcontainer/          # VS Code Dev Container config

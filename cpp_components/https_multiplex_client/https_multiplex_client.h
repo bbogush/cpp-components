@@ -6,7 +6,7 @@
 #ifndef CPP_COMPONENTS_HTTPS_MULTIPLEX_CLIENT_H
 #define CPP_COMPONENTS_HTTPS_MULTIPLEX_CLIENT_H
 
-#include "cpp-components/executor/executor.h"
+#include "cpp_components/executor/executor.h"
 
 #include <boost/asio/ip/tcp.hpp>
 #include <boost/asio/steady_timer.hpp>

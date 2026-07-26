@@ -27,12 +27,12 @@ if(NOT _jobs OR _jobs EQUAL 0)
   endif()
 endif()
 
-message(STATUS "Running clang-tidy on ${CLANG_TIDY_SOURCE_DIR}/cpp-components/ (${_jobs} jobs)")
+message(STATUS "Running clang-tidy on ${CLANG_TIDY_SOURCE_DIR}/cpp_components/ (${_jobs} jobs)")
 execute_process(
   COMMAND "${RUN_CLANG_TIDY_EXECUTABLE}"
           -p "${CLANG_TIDY_BINARY_DIR}"
           -j "${_jobs}"
-          cpp-components/
+          cpp_components/
   WORKING_DIRECTORY "${CLANG_TIDY_SOURCE_DIR}"
   COMMAND_ERROR_IS_FATAL ANY
 )

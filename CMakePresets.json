@@ -54,7 +54,7 @@
     },
     {
       "name": "coverage",
-      "displayName": "Coverage (cpp-components/ only, -O0 -g --coverage + unit tests)",
+      "displayName": "Coverage (cpp_components/ only, -O0 -g --coverage + unit tests)",
       "inherits": "debug",
       "binaryDir": "${sourceDir}/build/coverage",
       "cacheVariables": {
@@ -64,7 +64,7 @@
     },
     {
       "name": "clang-tidy",
-      "displayName": "Clang-Tidy (static analysis on cpp-components/)",
+      "displayName": "Clang-Tidy (static analysis on cpp_components/)",
       "inherits": "debug",
       "binaryDir": "${sourceDir}/build/clang-tidy",
       "cacheVariables": {

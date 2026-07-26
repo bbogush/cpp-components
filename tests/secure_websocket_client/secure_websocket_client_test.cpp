@@ -3,9 +3,9 @@
  *  it under the terms of the Apache License Version 2.0.
  */
 
-#include "cpp-components/executor/executor.h"
-#include "cpp-components/secure_websocket_client/reconnecting_secure_websocket_client.h"
-#include "cpp-components/secure_websocket_client/secure_websocket_client.h"
+#include "cpp_components/executor/executor.h"
+#include "cpp_components/secure_websocket_client/reconnecting_secure_websocket_client.h"
+#include "cpp_components/secure_websocket_client/secure_websocket_client.h"
 
 #include <gtest/gtest.h>
 

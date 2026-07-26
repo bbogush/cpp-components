@@ -5,4 +5,4 @@
 - Build successfully (see [README.md](README.md)).
 - Add and run unit tests (`tests` preset).
 - Run clang-tidy and fix reported issues.
-- Run coverage and meet >= 90% on `cpp-components/`.
+- Run coverage and meet >= 90% on `cpp_components/`.

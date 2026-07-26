@@ -28,19 +28,19 @@ execute_process(
 
 execute_process(
   COMMAND "${LCOV_EXECUTABLE}"
-          --extract "${_coverage_info}" "${COVERAGE_SOURCE_DIR}/cpp-components/*"
+          --extract "${_coverage_info}" "${COVERAGE_SOURCE_DIR}/cpp_components/*"
           --ignore-errors mismatch,negative
           --output-file "${_coverage_src_info}"
   COMMAND_ERROR_IS_FATAL ANY
 )
 
-message(STATUS "Coverage summary (cpp-components/ only):")
+message(STATUS "Coverage summary (cpp_components/ only):")
 execute_process(
   COMMAND "${LCOV_EXECUTABLE}" --summary "${_coverage_src_info}"
   COMMAND_ERROR_IS_FATAL ANY
 )
 
-message(STATUS "Coverage by file (cpp-components/ only):")
+message(STATUS "Coverage by file (cpp_components/ only):")
 execute_process(
   COMMAND "${LCOV_EXECUTABLE}" --list "${_coverage_src_info}"
   COMMAND_ERROR_IS_FATAL ANY

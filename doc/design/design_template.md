@@ -206,7 +206,7 @@ Describe the outward-facing API at a conceptual level. Detailed signatures belon
 
 Document the API between components. Include headers, key types, and function contracts.
 
-**Header:** `src/<component>/<component>.h`
+**Header:** `cpp_components/<component>/<component>.h`
 
 ```cpp
 namespace project::<component> {

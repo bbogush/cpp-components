@@ -3,7 +3,7 @@
  *  it under the terms of the Apache License Version 2.0.
  */
 
-#include "cpp-components/executor/executor.h"
+#include "cpp_components/executor/executor.h"
 
 #include <gtest/gtest.h>
 
