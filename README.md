@@ -74,12 +74,13 @@ CMake is the build system. Presets are defined in `CMakePresets.json`:
 | Preset | Output directory | Description |
 |--------|------------------|-------------|
 | `release` | `build/release` | Optimized build |
-| `relwithdebinfo` | `build/relwithdebinfo` | Optimized build with debug symbols |
+| `relwithdebinfo` | `build/relwithdebinfo` | Optimized build with debug symbols and frame pointers |
 | `debug` | `build/debug` | Unoptimized build with debug symbols |
 | `asan` | `build/asan` | Sanitizer-instrumented build |
 | `tests` | `build/tests` | Inherits `asan` with unit tests enabled |
 | `coverage` | `build/coverage` | Inherits `debug` with tests and `cpp_components/` coverage instrumentation |
 | `clang-tidy` | `build/clang-tidy` | Inherits `debug` with static analysis on `cpp_components/` |
+| `benchmarks` | `build/benchmarks` | Inherits `relwithdebinfo` with Google Benchmark targets enabled |
 
 From inside the container (or locally with CMake installed):
 
@@ -118,6 +119,35 @@ Unit tests use [Google Test](https://github.com/google/googletest), fetched auto
 cmake --preset tests
 cmake --build --preset tests
 ctest --preset tests
+```
+
+## Benchmarks
+
+Benchmarks use [Google Benchmark](https://github.com/google/benchmark), fetched automatically by
+CMake. The `benchmarks` preset builds in `build/benchmarks` with `BUILD_BENCHMARKS` enabled and
+RelWithDebInfo (`-O2 -g -fno-omit-frame-pointer`) so timings stay optimized while
+`perf` can resolve symbols and unwind stacks.
+
+```bash
+cmake --preset benchmarks
+cmake --build --preset benchmarks
+cmake --build --preset benchmarks-report
+```
+
+The `benchmarks-report` preset builds any missing benchmark binaries and runs them all
+(equivalent to invoking each `*_benchmark` executable under `build/benchmarks/`).
+
+May need to disable CPU scaling:
+```bash
+sudo cpupower frequency-set -g performance
+```
+
+Optional Linux `perf` wrapping (may need elevated privileges):
+
+```bash
+sudo perf stat ./build/benchmarks/secure_websocket_client_benchmark
+sudo perf record -g ./build/benchmarks/secure_websocket_client_benchmark
+sudo perf report
 ```
 
 ## Coverage
@@ -167,9 +197,10 @@ cmake --build --preset clang-tidy-check
 ```
 .
 ├── CMakeLists.txt          # Root CMake project
-├── CMakePresets.json       # Release, debug, tests, ASan, coverage, and clang-tidy presets
+├── CMakePresets.json       # Release, debug, tests, ASan, coverage, clang-tidy, and benchmarks presets
 ├── cpp_components/         # Library sources and public headers
 ├── tests/                  # Google Test unit tests
+├── benchmarks/             # Google Benchmark targets
 ├── docker/                 # Docker image and helper scripts
 └── .devcontainer/          # VS Code Dev Container config
 ```

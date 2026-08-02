@@ -1,0 +1,20 @@
+find_package(OpenSSL REQUIRED)
+
+add_executable(secure_websocket_client_benchmark secure_websocket_client_benchmark.cpp)
+
+target_link_libraries(secure_websocket_client_benchmark PRIVATE project_options)
+target_link_libraries(secure_websocket_client_benchmark PRIVATE project_features)
+target_link_libraries(secure_websocket_client_benchmark PRIVATE benchmark::benchmark)
+target_link_libraries(secure_websocket_client_benchmark PRIVATE benchmark::benchmark_main)
+target_link_libraries(secure_websocket_client_benchmark PRIVATE cpp_components)
+target_link_libraries(secure_websocket_client_benchmark PRIVATE OpenSSL::SSL)
+
+target_compile_definitions(secure_websocket_client_benchmark PRIVATE
+  BENCHMARK_CERT_DIR="${CMAKE_SOURCE_DIR}/tests/secure_websocket_client/certs")
+
+set_target_properties(secure_websocket_client_benchmark PROPERTIES
+  RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}"
+)
+
+list(APPEND CPP_COMPONENTS_BENCHMARK_EXECUTABLES secure_websocket_client_benchmark)
+set(CPP_COMPONENTS_BENCHMARK_EXECUTABLES "${CPP_COMPONENTS_BENCHMARK_EXECUTABLES}" PARENT_SCOPE)

@@ -17,11 +17,11 @@
     },
     {
       "name": "relwithdebinfo",
-      "displayName": "RelWithDebInfo (-O2 -g -DNDEBUG)",
+      "displayName": "RelWithDebInfo (-O2 -g -fno-omit-frame-pointer -DNDEBUG)",
       "binaryDir": "${sourceDir}/build/relwithdebinfo",
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "RelWithDebInfo",
-        "CMAKE_CXX_FLAGS_RELWITHDEBINFO": "-O2 -g -DNDEBUG"
+        "CMAKE_CXX_FLAGS_RELWITHDEBINFO": "-O2 -g -fno-omit-frame-pointer -DNDEBUG"
       }
     },
     {
@@ -69,6 +69,15 @@
       "binaryDir": "${sourceDir}/build/clang-tidy",
       "cacheVariables": {
         "ENABLE_CLANG_TIDY": "ON"
+      }
+    },
+    {
+      "name": "benchmarks",
+      "displayName": "Benchmarks (RelWithDebInfo + Google Benchmark)",
+      "inherits": "relwithdebinfo",
+      "binaryDir": "${sourceDir}/build/benchmarks",
+      "cacheVariables": {
+        "BUILD_BENCHMARKS": "ON"
       }
     }
   ],
@@ -127,6 +136,19 @@
       "configurePreset": "clang-tidy",
       "targets": [
         "clang-tidy"
+      ]
+    },
+    {
+      "name": "benchmarks",
+      "inherits": "default-build",
+      "configurePreset": "benchmarks"
+    },
+    {
+      "name": "benchmarks-report",
+      "inherits": "default-build",
+      "configurePreset": "benchmarks",
+      "targets": [
+        "benchmarks-report"
       ]
     }
   ],
