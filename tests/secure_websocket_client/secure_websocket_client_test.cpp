@@ -869,14 +869,20 @@ TEST(ReconnectingSecureWebSocketClientTest, close_stops_reconnect_attempts)
     client->set_initial_reconnect_delay(std::chrono::seconds { 60 });
     client->set_max_reconnect_delay(std::chrono::seconds { 60 });
 
-    std::atomic<bool> connect_handler_called { false };
+    std::promise<std::error_code> first_connect_result;
+    const auto first_connect_result_future = first_connect_result.get_future().share();
+    std::atomic<int> connect_handler_calls { 0 };
     client->connect(
         "127.0.0.1", port_string, [](auto ready) { ready("/"); },
-        [&connect_handler_called](const std::error_code &) {
-            connect_handler_called.store(true);
+        [&connect_handler_calls, &first_connect_result](const std::error_code &ec) {
+            if (connect_handler_calls.fetch_add(1) == 0) {
+                first_connect_result.set_value(ec);
+            }
         });
 
-    std::this_thread::sleep_for(std::chrono::milliseconds { 100 });
+    ASSERT_TRUE(wait_ready(first_connect_result_future));
+    EXPECT_TRUE(first_connect_result_future.get());
+    EXPECT_FALSE(client->is_connected());
 
     std::promise<void> closed;
     const auto closed_future = closed.get_future().share();
@@ -888,7 +894,10 @@ TEST(ReconnectingSecureWebSocketClientTest, close_stops_reconnect_attempts)
 
     ASSERT_TRUE(wait_ready(closed_future));
     EXPECT_FALSE(client->is_connected());
-    EXPECT_FALSE(connect_handler_called.load());
+
+    const auto calls_at_close = connect_handler_calls.load();
+    std::this_thread::sleep_for(std::chrono::milliseconds { 100 });
+    EXPECT_EQ(connect_handler_calls.load(), calls_at_close);
     executor.stop();
 }
 

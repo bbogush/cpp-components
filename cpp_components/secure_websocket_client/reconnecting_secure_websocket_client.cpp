@@ -145,6 +145,9 @@ void ReconnectingSecureWebSocketClient::handle_connect_result(std::uint64_t gene
     }
 
     if (ec) {
+        if (connect_handler) {
+            connect_handler(ec);
+        }
         schedule_reconnect();
         return;
     }
