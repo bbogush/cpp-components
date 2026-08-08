@@ -135,7 +135,7 @@ void HttpsMultiplexClient::request(HttpMethod method, std::string host, std::str
                                target = std::move(target), body = std::move(body),
                                headers = std::move(headers),
                                handler = std::move(handler)]() mutable {
-        self->do_request(method, std::move(host), port, target, std::move(body), headers,
+        self->do_request(method, host, port, target, std::move(body), headers,
             std::move(handler));
     };
     executor.post(std::move(request_handler));
@@ -167,9 +167,9 @@ void HttpsMultiplexClient::do_set_timeout(std::chrono::seconds timeout)
     this->timeout = timeout;
 }
 
-void HttpsMultiplexClient::do_request(HttpMethod method, std::string host, const std::string &port,
-    const std::string &target, std::string body, const std::vector<HttpHeader> &headers,
-    ResponseHandler handler)
+void HttpsMultiplexClient::do_request(HttpMethod method, const std::string &host,
+    const std::string &port, const std::string &target, std::string body,
+    const std::vector<HttpHeader> &headers, ResponseHandler handler)
 {
     if (!to_curl_method(method)) {
         if (handler) {
@@ -192,10 +192,11 @@ void HttpsMultiplexClient::do_request(HttpMethod method, std::string host, const
         conn->curl_headers = std::shared_ptr<curl_slist>(curl_headers, curl_slist_free_all);
     }
 
-    start_request(std::move(conn), method);
+    start_request(conn, method);
 }
 
-void HttpsMultiplexClient::start_request(std::shared_ptr<ConnContext> conn, HttpMethod method)
+void HttpsMultiplexClient::start_request(const std::shared_ptr<ConnContext> &conn,
+    HttpMethod method)
 {
     if (!multi) {
         if (conn->handler) {

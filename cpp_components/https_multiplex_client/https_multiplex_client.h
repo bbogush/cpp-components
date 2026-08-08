@@ -88,12 +88,12 @@ private:
 
     void do_set_ca_certificate(std::string ca_certificate_file);
     void do_set_timeout(std::chrono::seconds timeout);
-    void do_request(HttpMethod method, std::string host, const std::string &port,
+    void do_request(HttpMethod method, const std::string &host, const std::string &port,
         const std::string &target, std::string body, const std::vector<HttpHeader> &headers,
         ResponseHandler handler);
     void do_cancel();
 
-    void start_request(std::shared_ptr<ConnContext> conn, HttpMethod method);
+    void start_request(const std::shared_ptr<ConnContext> &conn, HttpMethod method);
     std::error_code configure_easy_handle(const std::shared_ptr<ConnContext> &conn);
     std::error_code apply_method(CURL *easy, HttpMethod method, ConnContext &conn);
 
