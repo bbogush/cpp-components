@@ -33,11 +33,11 @@ std::shared_ptr<ReconnectingSecureWebSocketClient> ReconnectingSecureWebSocketCl
 }
 
 void ReconnectingSecureWebSocketClient::connect(std::string host, std::string port,
-    std::string resource, ConnectHandler handler)
+    PrepareResourceHandler prepare_resource, ConnectHandler handler)
 {
     auto self = get_self();
     auto start_connect_handler = [self, host = std::move(host), port = std::move(port),
-                                     resource = std::move(resource),
+                                     prepare_resource = std::move(prepare_resource),
                                      handler = std::move(handler)]() mutable {
         if (self->reconnect_state.load(std::memory_order_acquire) != State::idle) {
             if (handler) {
@@ -48,7 +48,7 @@ void ReconnectingSecureWebSocketClient::connect(std::string host, std::string po
 
         self->host = std::move(host);
         self->port = std::move(port);
-        self->resource = std::move(resource);
+        self->prepare_resource = std::move(prepare_resource);
         self->connect_handler = std::move(handler);
         self->current_reconnect_delay = std::min(self->initial_reconnect_delay,
             self->max_reconnect_delay);
@@ -105,6 +105,29 @@ void ReconnectingSecureWebSocketClient::start_connect_attempt()
 {
     set_reconnect_state(State::connecting);
     const auto generation = ++connection_generation;
+
+    auto self = get_self();
+    auto resource_ready_callback = [self, generation](std::string resource) {
+        auto resource_ready_handler = [self, generation, resource = std::move(resource)]() mutable {
+            self->handle_resource_ready(generation, std::move(resource));
+        };
+        self->executor.post(std::move(resource_ready_handler));
+    };
+
+    if (prepare_resource) {
+        prepare_resource(std::move(resource_ready_callback));
+    }
+}
+
+void ReconnectingSecureWebSocketClient::handle_resource_ready(std::uint64_t generation,
+    std::string resource)
+{
+    if (generation != connection_generation ||
+        reconnect_state.load(std::memory_order_acquire) != State::connecting) {
+        return;
+    }
+
+    this->resource = std::move(resource);
 
     auto self = get_self();
     auto connect_result_handler = [self, generation](const std::error_code &ec) {
@@ -170,6 +193,7 @@ void ReconnectingSecureWebSocketClient::stop_reconnecting()
     set_reconnect_state(State::idle);
     reconnect_timer.cancel();
     connect_handler = nullptr;
+    prepare_resource = nullptr;
     current_reconnect_delay = initial_reconnect_delay;
 }
 

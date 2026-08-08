@@ -11,12 +11,17 @@
 #include <atomic>
 #include <chrono>
 #include <cstdint>
+#include <functional>
 #include <memory>
+#include <string>
 
 namespace cpp_components::secure_websocket_client {
 
 class ReconnectingSecureWebSocketClient : public SecureWebSocketClient {
 public:
+    using ResourceReadyHandler = std::function<void(std::string resource)>;
+    using PrepareResourceHandler = std::function<void(ResourceReadyHandler ready)>;
+
     static std::shared_ptr<ReconnectingSecureWebSocketClient> create(executor::Executor &executor);
 
     ReconnectingSecureWebSocketClient(const ReconnectingSecureWebSocketClient &) = delete;
@@ -27,7 +32,8 @@ public:
 
     ~ReconnectingSecureWebSocketClient() override;
 
-    void connect(std::string host, std::string port, std::string resource, ConnectHandler handler);
+    void connect(std::string host, std::string port, PrepareResourceHandler prepare_resource,
+        ConnectHandler handler);
     void close(CloseHandler handler = nullptr);
 
     void set_initial_reconnect_delay(std::chrono::steady_clock::duration delay);
@@ -49,6 +55,7 @@ private:
     std::shared_ptr<ReconnectingSecureWebSocketClient> get_self();
 
     void start_connect_attempt();
+    void handle_resource_ready(std::uint64_t generation, std::string resource);
     void handle_connect_result(std::uint64_t generation, const std::error_code &ec);
     void schedule_reconnect();
     void handle_reconnect_timer(std::uint64_t generation, const std::error_code &ec);
@@ -58,6 +65,7 @@ private:
 
     timer::Timer reconnect_timer;
     ConnectHandler connect_handler;
+    PrepareResourceHandler prepare_resource;
     std::chrono::steady_clock::duration initial_reconnect_delay { std::chrono::seconds { 1 } };
     std::chrono::steady_clock::duration max_reconnect_delay { std::chrono::seconds { 60 } };
     std::chrono::steady_clock::duration current_reconnect_delay { std::chrono::seconds { 1 } };
