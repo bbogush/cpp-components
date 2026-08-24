@@ -722,7 +722,7 @@ TEST(ReconnectingSecureWebSocketClientTest, reconnects_after_unexpected_disconne
     auto second_connected_future = second_connected.get_future().share();
     std::atomic<int> connect_count { 0 };
     client->connect(
-        "localhost", port_string, [](auto ready) { ready("/"); },
+        [port_string](auto ready) { ready("localhost", port_string, "/"); },
         [&connect_count, &first_connected, &second_connected](const std::error_code &ec) {
             if (ec) {
                 return;
@@ -832,7 +832,7 @@ TEST(ReconnectingSecureWebSocketClientTest, reconnects_after_initial_connect_fai
     std::promise<void> connected;
     const auto connected_future = connected.get_future().share();
     client->connect(
-        "localhost", port_string, [](auto ready) { ready("/"); },
+        [port_string](auto ready) { ready("localhost", port_string, "/"); },
         [&connected](const std::error_code &ec) {
             if (!ec) {
                 connected.set_value();
@@ -873,7 +873,7 @@ TEST(ReconnectingSecureWebSocketClientTest, close_stops_reconnect_attempts)
     const auto first_connect_result_future = first_connect_result.get_future().share();
     std::atomic<int> connect_handler_calls { 0 };
     client->connect(
-        "127.0.0.1", port_string, [](auto ready) { ready("/"); },
+        [port_string](auto ready) { ready("127.0.0.1", port_string, "/"); },
         [&connect_handler_calls, &first_connect_result](const std::error_code &ec) {
             if (connect_handler_calls.fetch_add(1) == 0) {
                 first_connect_result.set_value(ec);
@@ -934,10 +934,9 @@ TEST(ReconnectingSecureWebSocketClientTest, prepares_new_resource_after_unexpect
     std::atomic<int> connect_count { 0 };
 
     client->connect(
-        "localhost", port_string,
-        [&prepare_count](auto ready) {
+        [&prepare_count, port_string](auto ready) {
             const auto count = prepare_count.fetch_add(1) + 1;
-            ready("/key-" + std::to_string(count));
+            ready("localhost", port_string, "/key-" + std::to_string(count));
         },
         [&connect_count, &first_connected, &second_connected](const std::error_code &ec) {
             if (ec) {
@@ -986,7 +985,7 @@ TEST(ReconnectingSecureWebSocketClientTest, prepares_new_resource_after_unexpect
     executor.stop();
 }
 
-TEST(ReconnectingSecureWebSocketClientTest, ignores_late_resource_ready_after_close)
+TEST(ReconnectingSecureWebSocketClientTest, ignores_late_connection_ready_after_close)
 {
     const auto port = start_secure_echo_server();
     const auto port_string = std::to_string(port);
@@ -999,13 +998,12 @@ TEST(ReconnectingSecureWebSocketClientTest, ignores_late_resource_ready_after_cl
 
     std::promise<
         cpp_components::secure_websocket_client::ReconnectingSecureWebSocketClient::
-            ResourceReadyHandler>
+            ConnectionReadyHandler>
         ready_handler;
     const auto ready_handler_future = ready_handler.get_future().share();
 
     std::atomic<bool> connect_handler_called { false };
     client->connect(
-        "localhost", port_string,
         [&ready_handler](auto ready) { ready_handler.set_value(std::move(ready)); },
         [&connect_handler_called](const std::error_code &) {
             connect_handler_called.store(true);
@@ -1023,7 +1021,7 @@ TEST(ReconnectingSecureWebSocketClientTest, ignores_late_resource_ready_after_cl
     });
     ASSERT_TRUE(wait_ready(closed_future));
 
-    ready("/");
+    ready("localhost", port_string, "/");
     std::this_thread::sleep_for(std::chrono::milliseconds { 200 });
     EXPECT_FALSE(connect_handler_called.load());
     EXPECT_FALSE(client->is_connected());
