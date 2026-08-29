@@ -38,8 +38,7 @@ bool wait_ready(const std::shared_future<T> &future)
     return future.wait_for(wait_timeout) == std::future_status::ready;
 }
 
-void run_secure_echo_session(boost::asio::ip::tcp::socket socket,
-    bool close_after_first_message,
+void run_secure_echo_session(boost::asio::ip::tcp::socket socket, bool close_after_first_message,
     const std::function<void(std::string)> &on_target = nullptr)
 {
     namespace beast = boost::beast;
@@ -96,8 +95,8 @@ void run_secure_echo_session(boost::asio::ip::tcp::socket socket,
     }
 }
 
-uint16_t start_secure_echo_server(bool close_after_first_message = false,
-    int accept_count = 1, std::function<void(std::string)> on_target = nullptr)
+uint16_t start_secure_echo_server(bool close_after_first_message = false, int accept_count = 1,
+    std::function<void(std::string)> on_target = nullptr)
 {
     namespace net = boost::asio;
     using tcp = net::ip::tcp;
@@ -281,8 +280,7 @@ uint16_t start_secure_ping_pong_server(std::string expected_ping)
             }
 
             const auto data = buffer.cdata();
-            const auto message =
-                std::string(static_cast<const char *>(data.data()), data.size());
+            const auto message = std::string(static_cast<const char *>(data.data()), data.size());
             if (message == expected_ping) {
                 ws.write(net::buffer(std::string("pong")), ec);
             }
@@ -721,8 +719,7 @@ TEST(ReconnectingSecureWebSocketClientTest, reconnects_after_unexpected_disconne
     auto first_connected_future = first_connected.get_future().share();
     auto second_connected_future = second_connected.get_future().share();
     std::atomic<int> connect_count { 0 };
-    client->connect(
-        [port_string](auto ready) { ready("localhost", port_string, "/"); },
+    client->connect([port_string](auto ready) { ready("localhost", port_string, "/"); },
         [&connect_count, &first_connected, &second_connected](const std::error_code &ec) {
             if (ec) {
                 return;
@@ -770,7 +767,6 @@ TEST(ReconnectingSecureWebSocketClientTest, reconnects_after_unexpected_disconne
     EXPECT_FALSE(client->is_connected());
     executor.stop();
 }
-
 
 TEST(SecureWebSocketClientTest, connect_after_connection_refused_reuses_client)
 {
@@ -831,8 +827,7 @@ TEST(ReconnectingSecureWebSocketClientTest, reconnects_after_initial_connect_fai
 
     std::promise<void> connected;
     const auto connected_future = connected.get_future().share();
-    client->connect(
-        [port_string](auto ready) { ready("localhost", port_string, "/"); },
+    client->connect([port_string](auto ready) { ready("localhost", port_string, "/"); },
         [&connected](const std::error_code &ec) {
             if (!ec) {
                 connected.set_value();
@@ -872,8 +867,7 @@ TEST(ReconnectingSecureWebSocketClientTest, close_stops_reconnect_attempts)
     std::promise<std::error_code> first_connect_result;
     const auto first_connect_result_future = first_connect_result.get_future().share();
     std::atomic<int> connect_handler_calls { 0 };
-    client->connect(
-        [port_string](auto ready) { ready("127.0.0.1", port_string, "/"); },
+    client->connect([port_string](auto ready) { ready("127.0.0.1", port_string, "/"); },
         [&connect_handler_calls, &first_connect_result](const std::error_code &ec) {
             if (connect_handler_calls.fetch_add(1) == 0) {
                 first_connect_result.set_value(ec);
@@ -996,18 +990,14 @@ TEST(ReconnectingSecureWebSocketClientTest, ignores_late_connection_ready_after_
             executor);
     client->set_ca_certificate(TEST_CERT_DIR "/test-cert.pem");
 
-    std::promise<
-        cpp_components::secure_websocket_client::ReconnectingSecureWebSocketClient::
+    std::promise<cpp_components::secure_websocket_client::ReconnectingSecureWebSocketClient::
             ConnectionReadyHandler>
         ready_handler;
     const auto ready_handler_future = ready_handler.get_future().share();
 
     std::atomic<bool> connect_handler_called { false };
-    client->connect(
-        [&ready_handler](auto ready) { ready_handler.set_value(std::move(ready)); },
-        [&connect_handler_called](const std::error_code &) {
-            connect_handler_called.store(true);
-        });
+    client->connect([&ready_handler](auto ready) { ready_handler.set_value(std::move(ready)); },
+        [&connect_handler_called](const std::error_code &) { connect_handler_called.store(true); });
 
     ASSERT_TRUE(wait_ready(ready_handler_future));
     auto ready = ready_handler_future.get();
