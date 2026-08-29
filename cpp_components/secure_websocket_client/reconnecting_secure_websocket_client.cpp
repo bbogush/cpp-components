@@ -105,7 +105,7 @@ void ReconnectingSecureWebSocketClient::start_connect_attempt()
 
     auto self = get_self();
     auto connection_ready_callback = [self, generation](std::string host, std::string port,
-                                     std::string resource) {
+                                         std::string resource) {
         auto connection_ready_handler = [self, generation, host = std::move(host),
                                             port = std::move(port),
                                             resource = std::move(resource)]() mutable {

@@ -137,6 +137,20 @@ cmake --build --preset benchmarks-report
 The `benchmarks-report` preset builds any missing benchmark binaries and runs them all
 (equivalent to invoking each `*_benchmark` executable under `build/benchmarks/`).
 
+Secure WebSocket client benchmarks are split into separate binaries:
+
+| Binary | Measures |
+|--------|----------|
+| `secure_websocket_client_echo_benchmark` | Write + echo receive round-trip latency |
+| `secure_websocket_client_write_benchmark` | Time to queue 10k writes and receive all completion callbacks |
+| `secure_websocket_client_read_benchmark` | Server push read throughput (messages/s) |
+
+```bash
+./build/benchmarks/secure_websocket_client_echo_benchmark
+./build/benchmarks/secure_websocket_client_write_benchmark
+./build/benchmarks/secure_websocket_client_read_benchmark
+```
+
 May need to disable CPU scaling:
 ```bash
 sudo cpupower frequency-set -g performance
@@ -145,8 +159,8 @@ sudo cpupower frequency-set -g performance
 Optional Linux `perf` wrapping (may need elevated privileges):
 
 ```bash
-sudo perf stat ./build/benchmarks/secure_websocket_client_benchmark
-sudo perf record -g ./build/benchmarks/secure_websocket_client_benchmark
+sudo perf stat ./build/benchmarks/secure_websocket_client_read_benchmark
+sudo perf record -g ./build/benchmarks/secure_websocket_client_read_benchmark
 sudo perf report
 ```
 
