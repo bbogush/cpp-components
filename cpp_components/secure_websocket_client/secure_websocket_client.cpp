@@ -308,7 +308,20 @@ void SecureWebSocketClient::do_write(std::string message, WriteHandler handler)
         return;
     }
 
-    write_queue.push_back(WriteRequest { std::move(message), std::move(handler) });
+    write_queue.push_back(
+        WriteRequest { WriteType::message, std::move(message), std::move(handler) });
+    if (!write_in_progress) {
+        start_write();
+    }
+}
+
+void SecureWebSocketClient::do_protocol_ping()
+{
+    if (state.load(std::memory_order_acquire) != ConnectionState::connected || !ws) {
+        return;
+    }
+
+    write_queue.push_back(WriteRequest { WriteType::ping, {}, nullptr });
     if (!write_in_progress) {
         start_write();
     }
@@ -322,11 +335,21 @@ void SecureWebSocketClient::start_write()
 
     write_in_progress = true;
     auto self = shared_from_this();
+    const auto &item = write_queue.front();
+
+    if (item.type == WriteType::ping) {
+        auto ping_handler = [self](const boost::system::error_code &ec) {
+            self->handle_protocol_ping(ec);
+        };
+        ws->async_ping({}, std::move(ping_handler));
+        return;
+    }
+
     auto write_handler = [self](const boost::system::error_code &ec,
                              std::size_t bytes_transferred) {
         self->handle_write(ec, bytes_transferred);
     };
-    ws->async_write(net::buffer(write_queue.front().message), std::move(write_handler));
+    ws->async_write(net::buffer(item.message), std::move(write_handler));
 }
 
 void SecureWebSocketClient::handle_write(const boost::system::error_code &ec, std::size_t)
@@ -342,6 +365,25 @@ void SecureWebSocketClient::handle_write(const boost::system::error_code &ec, st
     if (handler) {
         handler(static_cast<std::error_code>(ec));
     }
+
+    if (ec) {
+        handle_unexpected_disconnect(ec);
+        return;
+    }
+
+    if (!write_queue.empty()) {
+        start_write();
+    }
+}
+
+void SecureWebSocketClient::handle_protocol_ping(const boost::system::error_code &ec)
+{
+    if (!is_connected()) {
+        return;
+    }
+
+    write_queue.pop_front();
+    write_in_progress = false;
 
     if (ec) {
         handle_unexpected_disconnect(ec);
@@ -478,8 +520,7 @@ void SecureWebSocketClient::start_ping_timer()
 
     ping_timer.expires_after(ping_interval);
     auto self = shared_from_this();
-    ping_timer.async_wait(
-        [self](const std::error_code &ec) { self->handle_ping_timer(ec); });
+    ping_timer.async_wait([self](const std::error_code &ec) { self->handle_ping_timer(ec); });
 }
 
 void SecureWebSocketClient::stop_ping_timer()
@@ -494,7 +535,11 @@ void SecureWebSocketClient::handle_ping_timer(const std::error_code &ec)
     }
 
     if (ping_message_generator) {
+        // Application text ping via the shared write queue
         do_write(ping_message_generator(), nullptr);
+    } else {
+        // WebSocket protocol ping frame
+        do_protocol_ping();
     }
 
     start_ping_timer();
@@ -508,8 +553,7 @@ void SecureWebSocketClient::start_read_timer()
 
     read_timer.expires_after(read_timeout);
     auto self = shared_from_this();
-    read_timer.async_wait(
-        [self](const std::error_code &ec) { self->handle_read_timeout(ec); });
+    read_timer.async_wait([self](const std::error_code &ec) { self->handle_read_timeout(ec); });
 }
 
 void SecureWebSocketClient::stop_read_timer()

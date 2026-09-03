@@ -84,7 +84,13 @@ private:
         closing,
     };
 
+    enum class WriteType {
+        message,
+        ping,
+    };
+
     struct WriteRequest {
+        WriteType type { WriteType::message };
         std::string message;
         WriteHandler handler;
     };
@@ -101,8 +107,10 @@ private:
     void handle_read(const boost::system::error_code &ec, std::size_t bytes_transferred);
 
     void do_write(std::string message, WriteHandler handler);
+    void do_protocol_ping();
     void start_write();
     void handle_write(const boost::system::error_code &ec, std::size_t bytes_transferred);
+    void handle_protocol_ping(const boost::system::error_code &ec);
 
     void set_state(ConnectionState new_state);
     bool is_connecting() const;
