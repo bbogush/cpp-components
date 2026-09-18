@@ -203,6 +203,8 @@ void SecureWebSocketClient::handle_connect(ConnectHandler handler,
         return;
     }
 
+    // Optimize write for low latency
+    beast::get_lowest_layer(*ws).socket().set_option(Tcp::no_delay(true));
     beast::get_lowest_layer(*ws).expires_after(connect_timeout);
 
     if (!SSL_set_tlsext_host_name(ws->next_layer().native_handle(), host.c_str())) {
