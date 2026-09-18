@@ -41,13 +41,15 @@ public:
     template<typename F>
     void post(F &&callback)
     {
-        io_context.post(std::forward<F>(callback));
+        io_context.post(boost::asio::bind_allocator(boost::asio::recycling_allocator<void> {},
+            std::forward<F>(callback)));
     }
 
     template<typename F>
     void dispatch(F &&callback)
     {
-        io_context.dispatch(std::forward<F>(callback));
+        io_context.dispatch(boost::asio::bind_allocator(boost::asio::recycling_allocator<void> {},
+            std::forward<F>(callback)));
     }
 
 private:
