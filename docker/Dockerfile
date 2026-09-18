@@ -12,7 +12,8 @@ RUN apt-get update && apt-get install -y \
     lcov \
     libboost-dev \
     libcurl4-openssl-dev \
-    libssl-dev
+    libssl-dev \
+    liburing-dev
 
 # Use a non-root user ubuntu
 ARG USERNAME=ubuntu

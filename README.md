@@ -8,7 +8,8 @@ Reusable C++20 components (async executor, timers, HTTPS and WebSocket clients) 
 
 - [Docker](https://docs.docker.com/get-docker/) — for the development environment
 - CMake 3.20+ — only needed if building outside Docker
-- System libraries: Boost (system), OpenSSL, libcurl
+- System libraries: Boost (system), OpenSSL, libcurl, liburing (`liburing-dev`)
+- Linux kernel ≥ 5.10 (Boost.Asio uses the io_uring backend)
 
 ## Using as a dependency
 
@@ -32,7 +33,7 @@ Include headers with the `cpp_components/` prefix:
 #include "cpp_components/executor/executor.h"
 ```
 
-The consumer must provide Boost, OpenSSL, and libcurl (same packages as this project's Docker image).
+The consumer must provide Boost, OpenSSL, libcurl, and liburing (same packages as this project's Docker image).
 
 ## Development environment
 
@@ -164,6 +165,7 @@ Optional Linux `perf` wrapping (may need elevated privileges):
 sudo perf stat ./build/benchmarks/secure_websocket_client_read_benchmark
 sudo perf record -g ./build/benchmarks/secure_websocket_client_read_benchmark
 sudo perf report
+sudo perf report --stdio > perf_report.txt
 ```
 
 ## Coverage
