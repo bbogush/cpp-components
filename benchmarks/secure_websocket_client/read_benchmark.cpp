@@ -81,10 +81,7 @@ BENCHMARK_DEFINE_F(ReadFixture, read_throughput)(benchmark::State &state)
         messages_received = 0;
         measuring = true;
 
-        const auto deadline = std::chrono::steady_clock::now() + throughput_sample_time;
-        while (std::chrono::steady_clock::now() < deadline) {
-            std::this_thread::yield();
-        }
+        std::this_thread::sleep_for(throughput_sample_time);
 
         measuring = false;
         state.SetItemsProcessed(messages_received.load(std::memory_order_relaxed));
