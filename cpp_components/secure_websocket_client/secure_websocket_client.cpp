@@ -5,7 +5,9 @@
 
 #include "secure_websocket_client.h"
 
+#include <boost/asio/bind_allocator.hpp>
 #include <boost/asio/connect.hpp>
+#include <boost/asio/recycling_allocator.hpp>
 #include <boost/asio/ssl/host_name_verification.hpp>
 
 #include <openssl/err.h>
@@ -279,7 +281,8 @@ void SecureWebSocketClient::start_read()
     auto read_handler = [self](const boost::system::error_code &ec, std::size_t bytes_transferred) {
         self->handle_read(ec, bytes_transferred);
     };
-    ws->async_read(read_buffer, std::move(read_handler));
+    ws->async_read(read_buffer,
+        net::bind_allocator(net::recycling_allocator<void> {}, std::move(read_handler)));
 }
 
 void SecureWebSocketClient::handle_read(const boost::system::error_code &ec, std::size_t)
