@@ -46,11 +46,11 @@ public:
             close_client(*client);
         }
 
-        client.reset();
         if (executor) {
-            executor->stop();
-            executor.reset();
+            executor->stop(true);
         }
+        client.reset();
+        executor.reset();
     }
 
 protected:

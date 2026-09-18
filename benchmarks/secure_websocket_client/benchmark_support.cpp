@@ -13,7 +13,6 @@
 #include <boost/beast/websocket/ssl.hpp>
 
 #include <future>
-#include <iostream>
 #include <string>
 #include <system_error>
 #include <thread>
@@ -94,7 +93,6 @@ void run_secure_push_session(boost::asio::ip::tcp::socket socket)
     for (;;) {
         ws.write(net::buffer(payload), ec);
         if (ec) {
-            std::cout << "Error pushing message: " << ec.message() << '\n';
             break;
         }
     }

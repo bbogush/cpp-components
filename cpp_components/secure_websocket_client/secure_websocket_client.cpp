@@ -267,7 +267,7 @@ void SecureWebSocketClient::handle_websocket_handshake(const ConnectHandler &han
 
 void SecureWebSocketClient::start_read()
 {
-    if (!ws) {
+    if (!ws || !is_connected()) {
         return;
     }
 
@@ -425,7 +425,7 @@ void SecureWebSocketClient::do_close(const CloseHandler &handler)
     cancel_pending_operations();
     fail_pending_writes();
     close_socket();
-    destroy_stream();
+    // Keep ws alive since executor may have a pending read operation
     set_state(ConnectionState::disconnected);
     if (handler) {
         handler({});
@@ -444,14 +444,8 @@ bool SecureWebSocketClient::is_connecting() const
 
 void SecureWebSocketClient::create_stream()
 {
-    destroy_stream();
     read_buffer.consume(read_buffer.size());
     ws = std::make_unique<WebSocketStream>(executor.get_context(), ssl_context);
-}
-
-void SecureWebSocketClient::destroy_stream()
-{
-    ws.reset();
 }
 
 void SecureWebSocketClient::cancel_pending_operations()

@@ -115,7 +115,6 @@ private:
     void set_state(ConnectionState new_state);
     bool is_connecting() const;
     void create_stream();
-    void destroy_stream();
     void cancel_pending_operations();
     void close_socket();
     void fail_pending_writes();
