@@ -47,15 +47,6 @@ SecureWebSocketClient::~SecureWebSocketClient()
     do_close(nullptr);
 }
 
-void SecureWebSocketClient::set_ca_certificate(const std::string &ca_certificate_file)
-{
-    if (ca_certificate_file.empty()) {
-        return;
-    }
-
-    ssl_context.load_verify_file(ca_certificate_file);
-}
-
 void SecureWebSocketClient::connect(std::string host, std::string port, std::string resource,
     ConnectHandler handler)
 {
@@ -149,6 +140,20 @@ void SecureWebSocketClient::set_read_timeout(std::chrono::seconds timeout)
 bool SecureWebSocketClient::is_connected() const
 {
     return state.load(std::memory_order_acquire) == ConnectionState::connected;
+}
+
+void SecureWebSocketClient::set_ca_certificate(const std::string &ca_certificate_file)
+{
+    if (ca_certificate_file.empty()) {
+        return;
+    }
+
+    ssl_context.load_verify_file(ca_certificate_file);
+}
+
+size_t SecureWebSocketClient::get_read_buffer_size() const
+{
+    return read_buffer_size;
 }
 
 void SecureWebSocketClient::do_connect(ConnectHandler handler)

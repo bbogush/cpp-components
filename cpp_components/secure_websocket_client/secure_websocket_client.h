@@ -59,6 +59,8 @@ public:
 
     void set_ca_certificate(const std::string &ca_certificate_file);
 
+    size_t get_read_buffer_size() const;
+
 protected:
     using Tcp = boost::asio::ip::tcp;
     using WebSocketStream =
@@ -94,6 +96,8 @@ private:
         std::string message;
         WriteHandler handler;
     };
+
+    inline static constexpr size_t read_buffer_size = 64 * 1024; // 64KB
 
     void handle_resolve(ConnectHandler handler, const boost::system::error_code &ec,
         const Tcp::resolver::results_type &results);
@@ -134,7 +138,7 @@ private:
     std::unique_ptr<WebSocketStream> ws;
     timer::Timer ping_timer;
     timer::Timer read_timer;
-    boost::beast::flat_buffer read_buffer;
+    boost::beast::flat_static_buffer<read_buffer_size> read_buffer;
     std::deque<WriteRequest> write_queue;
     bool write_in_progress = false;
     std::atomic<ConnectionState> state { ConnectionState::disconnected };
