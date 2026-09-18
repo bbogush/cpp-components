@@ -14,6 +14,7 @@ FetchContent_MakeAvailable(googlebenchmark)
 
 set(CPP_COMPONENTS_BENCHMARK_EXECUTABLES "")
 
+add_subdirectory(executor)
 add_subdirectory(secure_websocket_client)
 
 set(_benchmark_run_commands)
