@@ -106,36 +106,30 @@ void HttpsMultiplexClient::set_ca_certificate(const std::string &ca_certificate_
     executor.post(std::move(ca_certificate_handler));
 }
 
-void HttpsMultiplexClient::set_timeout(std::chrono::seconds timeout)
-{
-    auto self = shared_from_this();
-    auto timeout_handler = [self, timeout]() { self->do_set_timeout(timeout); };
-    executor.post(std::move(timeout_handler));
-}
-
 void HttpsMultiplexClient::get(std::string host, std::string port, std::string target,
-    ResponseHandler handler)
+    std::chrono::milliseconds timeout, ResponseHandler handler)
 {
-    request(HttpMethod::get, std::move(host), std::move(port), std::move(target), {}, {},
+    request(HttpMethod::get, std::move(host), std::move(port), std::move(target), {}, {}, timeout,
         std::move(handler));
 }
 
 void HttpsMultiplexClient::post(std::string host, std::string port, std::string target,
-    std::string body, ResponseHandler handler)
+    std::string body, std::chrono::milliseconds timeout, ResponseHandler handler)
 {
     request(HttpMethod::post, std::move(host), std::move(port), std::move(target), std::move(body),
-        {}, std::move(handler));
+        {}, timeout, std::move(handler));
 }
 
 void HttpsMultiplexClient::request(HttpMethod method, std::string host, std::string port,
-    std::string target, std::string body, std::vector<HttpHeader> headers, ResponseHandler handler)
+    std::string target, std::string body, std::vector<HttpHeader> headers,
+    std::chrono::milliseconds timeout, ResponseHandler handler)
 {
     auto self = shared_from_this();
     auto request_handler = [self, method, host = std::move(host), port = std::move(port),
                                target = std::move(target), body = std::move(body),
-                               headers = std::move(headers),
+                               headers = std::move(headers), timeout,
                                handler = std::move(handler)]() mutable {
-        self->do_request(method, host, port, target, std::move(body), headers,
+        self->do_request(method, host, port, target, std::move(body), headers, timeout,
             std::move(handler));
     };
     executor.post(std::move(request_handler));
@@ -162,14 +156,10 @@ void HttpsMultiplexClient::do_set_ca_certificate(std::string ca_certificate_file
     this->ca_certificate_file = std::move(ca_certificate_file);
 }
 
-void HttpsMultiplexClient::do_set_timeout(std::chrono::seconds timeout)
-{
-    this->timeout = timeout;
-}
-
 void HttpsMultiplexClient::do_request(HttpMethod method, const std::string &host,
     const std::string &port, const std::string &target, std::string body,
-    const std::vector<HttpHeader> &headers, ResponseHandler handler)
+    const std::vector<HttpHeader> &headers, std::chrono::milliseconds timeout,
+    ResponseHandler handler)
 {
     if (!to_curl_method(method)) {
         if (handler) {
@@ -181,6 +171,7 @@ void HttpsMultiplexClient::do_request(HttpMethod method, const std::string &host
     auto conn = std::make_shared<ConnContext>();
     conn->url = "https://" + host + ":" + port + target;
     conn->body = std::move(body);
+    conn->timeout = timeout;
     conn->handler = std::move(handler);
 
     if (!headers.empty()) {
@@ -298,9 +289,10 @@ std::error_code HttpsMultiplexClient::configure_easy_handle(
     curl_easy_setopt(easy, CURLOPT_TCP_KEEPALIVE, 1L);
     curl_easy_setopt(easy, CURLOPT_FOLLOWLOCATION, 1L);
 
-    const long timeout_seconds = timeout.count() > 0 ? static_cast<long>(timeout.count()) : 0L;
-    curl_easy_setopt(easy, CURLOPT_TIMEOUT, timeout_seconds);
-    curl_easy_setopt(easy, CURLOPT_CONNECTTIMEOUT, timeout_seconds > 0 ? timeout_seconds : 5L);
+    const long timeout_ms =
+        conn->timeout.count() > 0 ? static_cast<long>(conn->timeout.count()) : 0L;
+    curl_easy_setopt(easy, CURLOPT_TIMEOUT_MS, timeout_ms);
+    curl_easy_setopt(easy, CURLOPT_CONNECTTIMEOUT_MS, timeout_ms > 0 ? timeout_ms : 5000L);
 
     if (!ca_certificate_file.empty()) {
         curl_easy_setopt(easy, CURLOPT_CAINFO, ca_certificate_file.c_str());

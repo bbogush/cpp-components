@@ -245,7 +245,7 @@ TEST(HttpsMultiplexClientTest, get_returns_body_and_status)
     std::promise<std::pair<std::error_code, cpp_components::https_multiplex_client::HttpResponse>>
         result;
     const auto result_future = result.get_future().share();
-    client->get("localhost", port_string, "/hello",
+    client->get("localhost", port_string, "/hello", std::chrono::milliseconds { 15000 },
         [&result](const std::error_code &ec,
             cpp_components::https_multiplex_client::HttpResponse response) {
             result.set_value({ ec, std::move(response) });
@@ -285,6 +285,7 @@ TEST(HttpsMultiplexClientTest, post_sends_body_and_headers)
         {
             { "X-Test", "value" }
     },
+        std::chrono::milliseconds { 15000 },
         [&result](const std::error_code &ec,
             cpp_components::https_multiplex_client::HttpResponse response) {
             result.set_value({ ec, std::move(response) });
@@ -327,7 +328,7 @@ TEST(HttpsMultiplexClientTest, concurrent_requests_complete)
     for (int i = 0; i < request_count; ++i) {
         futures.push_back(results[static_cast<std::size_t>(i)].get_future().share());
         const auto target = "/item/" + std::to_string(i);
-        client->get("localhost", port_string, target,
+        client->get("localhost", port_string, target, std::chrono::milliseconds { 15000 },
             [&results, i](const std::error_code &ec,
                 cpp_components::https_multiplex_client::HttpResponse response) {
                 results[static_cast<std::size_t>(i)].set_value({ ec, std::move(response.body) });
@@ -353,7 +354,7 @@ TEST(HttpsMultiplexClientTest, unsupported_method_fails)
     std::promise<std::error_code> result;
     const auto result_future = result.get_future().share();
     client->request(static_cast<cpp_components::https_multiplex_client::HttpMethod>(99),
-        "localhost", "443", "/", {}, {},
+        "localhost", "443", "/", {}, {}, std::chrono::milliseconds { 15000 },
         [&result](const std::error_code &ec, const auto &) { result.set_value(ec); });
 
     ASSERT_TRUE(wait_ready(result_future));
@@ -366,11 +367,10 @@ TEST(HttpsMultiplexClientTest, cancel_aborts_in_flight_request)
     cpp_components::executor::Executor executor {};
     auto client = cpp_components::https_multiplex_client::HttpsMultiplexClient::create(executor);
     client->set_ca_certificate(TEST_CERT_DIR "/test-cert.pem");
-    client->set_timeout(std::chrono::seconds { 5 });
 
     std::promise<std::error_code> result;
     const auto result_future = result.get_future().share();
-    client->get("192.0.2.1", "9", "/",
+    client->get("192.0.2.1", "9", "/", std::chrono::milliseconds { 5000 },
         [&result](const std::error_code &ec, const auto &) { result.set_value(ec); });
 
     client->cancel();
@@ -389,11 +389,10 @@ TEST(HttpsMultiplexClientTest, cancel_closes_active_sockets)
     cpp_components::executor::Executor executor {};
     auto client = cpp_components::https_multiplex_client::HttpsMultiplexClient::create(executor);
     client->set_ca_certificate(TEST_CERT_DIR "/test-cert.pem");
-    client->set_timeout(std::chrono::seconds { 15 });
 
     std::promise<std::error_code> result;
     const auto result_future = result.get_future().share();
-    client->get("localhost", port_string, "/",
+    client->get("localhost", port_string, "/", std::chrono::milliseconds { 15000 },
         [&result](const std::error_code &ec, const auto &) { result.set_value(ec); });
 
     ASSERT_TRUE(wait_until_busy(*client));
@@ -411,11 +410,10 @@ TEST(HttpsMultiplexClientTest, dns_failure_is_reported)
 {
     cpp_components::executor::Executor executor {};
     auto client = cpp_components::https_multiplex_client::HttpsMultiplexClient::create(executor);
-    client->set_timeout(std::chrono::seconds { 3 });
 
     std::promise<std::error_code> result;
     const auto result_future = result.get_future().share();
-    client->get("nonexistent.invalid", "443", "/",
+    client->get("nonexistent.invalid", "443", "/", std::chrono::milliseconds { 3000 },
         [&result](const std::error_code &ec, const auto &) { result.set_value(ec); });
 
     ASSERT_TRUE(wait_ready(result_future));
@@ -430,11 +428,10 @@ TEST(HttpsMultiplexClientTest, connection_refused_is_reported)
 
     cpp_components::executor::Executor executor {};
     auto client = cpp_components::https_multiplex_client::HttpsMultiplexClient::create(executor);
-    client->set_timeout(std::chrono::seconds { 3 });
 
     std::promise<std::error_code> result;
     const auto result_future = result.get_future().share();
-    client->get("127.0.0.1", port_string, "/",
+    client->get("127.0.0.1", port_string, "/", std::chrono::milliseconds { 3000 },
         [&result](const std::error_code &ec, const auto &) { result.set_value(ec); });
 
     ASSERT_TRUE(wait_ready(result_future));
@@ -454,11 +451,10 @@ TEST(HttpsMultiplexClientTest, request_timeout_is_reported)
     cpp_components::executor::Executor executor {};
     auto client = cpp_components::https_multiplex_client::HttpsMultiplexClient::create(executor);
     client->set_ca_certificate(TEST_CERT_DIR "/test-cert.pem");
-    client->set_timeout(std::chrono::seconds { 1 });
 
     std::promise<std::error_code> result;
     const auto result_future = result.get_future().share();
-    client->get("localhost", port_string, "/",
+    client->get("localhost", port_string, "/", std::chrono::milliseconds { 1000 },
         [&result](const std::error_code &ec, const auto &) { result.set_value(ec); });
 
     ASSERT_TRUE(wait_ready(result_future));
@@ -475,9 +471,9 @@ TEST(HttpsMultiplexClientTest, destroy_while_busy_cleans_up)
     auto executor = std::make_unique<cpp_components::executor::Executor>();
     auto client = cpp_components::https_multiplex_client::HttpsMultiplexClient::create(*executor);
     client->set_ca_certificate(TEST_CERT_DIR "/test-cert.pem");
-    client->set_timeout(std::chrono::seconds { 15 });
 
-    client->get("localhost", port_string, "/", [](const std::error_code &, const auto &) {});
+    client->get("localhost", port_string, "/", std::chrono::milliseconds { 15000 },
+        [](const std::error_code &, const auto &) {});
     ASSERT_TRUE(wait_until_busy(*client));
     std::this_thread::sleep_for(std::chrono::milliseconds { 100 });
 
@@ -501,7 +497,7 @@ TEST(HttpsMultiplexClientTest, empty_ca_certificate_is_ignored)
 
     std::promise<std::error_code> result;
     const auto result_future = result.get_future().share();
-    client->get("localhost", port_string, "/",
+    client->get("localhost", port_string, "/", std::chrono::milliseconds { 15000 },
         [&result](const std::error_code &ec, const auto &) { result.set_value(ec); });
 
     ASSERT_TRUE(wait_ready(result_future));
@@ -509,7 +505,7 @@ TEST(HttpsMultiplexClientTest, empty_ca_certificate_is_ignored)
     executor.stop();
 }
 
-TEST(HttpsMultiplexClientTest, set_timeout_allows_successful_request)
+TEST(HttpsMultiplexClientTest, request_timeout_allows_successful_request)
 {
     auto server = start_https_server(1,
         [](const auto &, auto &response) { response.body() = "ok"; });
@@ -518,11 +514,10 @@ TEST(HttpsMultiplexClientTest, set_timeout_allows_successful_request)
     cpp_components::executor::Executor executor {};
     auto client = cpp_components::https_multiplex_client::HttpsMultiplexClient::create(executor);
     client->set_ca_certificate(TEST_CERT_DIR "/test-cert.pem");
-    client->set_timeout(std::chrono::seconds { 5 });
 
     std::promise<std::error_code> result;
     const auto result_future = result.get_future().share();
-    client->get("localhost", port_string, "/",
+    client->get("localhost", port_string, "/", std::chrono::milliseconds { 5000 },
         [&result](const std::error_code &ec, const auto &) { result.set_value(ec); });
 
     ASSERT_TRUE(wait_ready(result_future));
@@ -561,6 +556,7 @@ TEST(HttpsMultiplexClientTest, remaining_http_methods_are_supported)
         std::promise<std::error_code> result;
         const auto result_future = result.get_future().share();
         client->request(test_case.method, "localhost", port_string, "/", "body", {},
+            std::chrono::milliseconds { 15000 },
             [&result](const std::error_code &ec, const auto &) { result.set_value(ec); });
 
         ASSERT_TRUE(wait_ready(result_future));
@@ -578,11 +574,10 @@ TEST(HttpsMultiplexClientTest, zero_timeout_still_allows_request)
     cpp_components::executor::Executor executor {};
     auto client = cpp_components::https_multiplex_client::HttpsMultiplexClient::create(executor);
     client->set_ca_certificate(TEST_CERT_DIR "/test-cert.pem");
-    client->set_timeout(std::chrono::seconds::zero());
 
     std::promise<std::error_code> result;
     const auto result_future = result.get_future().share();
-    client->get("localhost", port_string, "/",
+    client->get("localhost", port_string, "/", std::chrono::milliseconds::zero(),
         [&result](const std::error_code &ec, const auto &) { result.set_value(ec); });
 
     ASSERT_TRUE(wait_ready(result_future));
@@ -606,7 +601,7 @@ TEST(HttpsMultiplexClientTest, post_helper_sends_body)
 
     std::promise<std::pair<std::error_code, std::string>> result;
     const auto result_future = result.get_future().share();
-    client->post("localhost", port_string, "/echo", "payload",
+    client->post("localhost", port_string, "/echo", "payload", std::chrono::milliseconds { 15000 },
         [&result](const std::error_code &ec,
             cpp_components::https_multiplex_client::HttpResponse response) {
             result.set_value({ ec, std::move(response.body) });

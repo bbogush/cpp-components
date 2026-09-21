@@ -59,13 +59,14 @@ public:
     ~HttpsClientAsync();
 
     void set_ca_certificate(const std::string &ca_certificate_file);
-    void set_timeout(std::chrono::seconds timeout);
 
-    void get(std::string host, std::string port, std::string target, ResponseHandler handler);
+    void get(std::string host, std::string port, std::string target,
+        std::chrono::milliseconds timeout, ResponseHandler handler);
     void post(std::string host, std::string port, std::string target, std::string body,
-        ResponseHandler handler);
+        std::chrono::milliseconds timeout, ResponseHandler handler);
     void request(HttpMethod method, std::string host, std::string port, std::string target,
-        std::string body, std::vector<HttpHeader> headers, ResponseHandler handler);
+        std::string body, std::vector<HttpHeader> headers, std::chrono::milliseconds timeout,
+        ResponseHandler handler);
 
     void cancel();
     bool is_busy() const;
@@ -84,7 +85,7 @@ private:
 
     void do_request(HttpMethod method, std::string host, const std::string &port,
         const std::string &target, std::string body, const std::vector<HttpHeader> &headers,
-        ResponseHandler handler);
+        std::chrono::milliseconds timeout, ResponseHandler handler);
     void do_cancel();
 
     void handle_resolve(std::uint64_t generation, const boost::system::error_code &ec,
@@ -118,7 +119,7 @@ private:
     boost::beast::http::response<boost::beast::http::string_body> http_response;
     ResponseHandler response_handler;
     std::string host;
-    std::chrono::seconds timeout { 30 };
+    std::chrono::milliseconds timeout { 0 };
     std::atomic<RequestState> state { RequestState::idle };
     std::uint64_t request_generation = 0;
 };

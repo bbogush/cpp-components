@@ -58,13 +58,14 @@ public:
     ~HttpsMultiplexClient();
 
     void set_ca_certificate(const std::string &ca_certificate_file);
-    void set_timeout(std::chrono::seconds timeout);
 
-    void get(std::string host, std::string port, std::string target, ResponseHandler handler);
+    void get(std::string host, std::string port, std::string target,
+        std::chrono::milliseconds timeout, ResponseHandler handler);
     void post(std::string host, std::string port, std::string target, std::string body,
-        ResponseHandler handler);
+        std::chrono::milliseconds timeout, ResponseHandler handler);
     void request(HttpMethod method, std::string host, std::string port, std::string target,
-        std::string body, std::vector<HttpHeader> headers, ResponseHandler handler);
+        std::string body, std::vector<HttpHeader> headers, std::chrono::milliseconds timeout,
+        ResponseHandler handler);
 
     void cancel();
     std::size_t pending_count() const;
@@ -76,6 +77,7 @@ private:
         std::shared_ptr<curl_slist> curl_headers;
         std::string url;
         std::string body;
+        std::chrono::milliseconds timeout { 0 };
         char error[CURL_ERROR_SIZE] {};
         std::string response_body;
         std::vector<HttpHeader> response_headers;
@@ -87,10 +89,9 @@ private:
     explicit HttpsMultiplexClient(executor::Executor &executor);
 
     void do_set_ca_certificate(std::string ca_certificate_file);
-    void do_set_timeout(std::chrono::seconds timeout);
     void do_request(HttpMethod method, const std::string &host, const std::string &port,
         const std::string &target, std::string body, const std::vector<HttpHeader> &headers,
-        ResponseHandler handler);
+        std::chrono::milliseconds timeout, ResponseHandler handler);
     void do_cancel();
 
     void start_request(const std::shared_ptr<ConnContext> &conn, HttpMethod method);
@@ -131,7 +132,6 @@ private:
     CURLM *multi = nullptr;
     int still_running = 0;
     std::string ca_certificate_file;
-    std::chrono::seconds timeout { 15 };
     std::atomic<std::size_t> pending { 0 };
     std::unordered_map<curl_socket_t, std::shared_ptr<TcpSocket>> socket_map;
     std::unordered_map<curl_socket_t, int> socket_actions;

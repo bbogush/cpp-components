@@ -50,36 +50,30 @@ void HttpsClientAsync::set_ca_certificate(const std::string &ca_certificate_file
     ssl_context.load_verify_file(ca_certificate_file);
 }
 
-void HttpsClientAsync::set_timeout(std::chrono::seconds timeout)
-{
-    auto self = shared_from_this();
-    auto timeout_handler = [self, timeout]() { self->timeout = timeout; };
-    executor.post(std::move(timeout_handler));
-}
-
 void HttpsClientAsync::get(std::string host, std::string port, std::string target,
-    ResponseHandler handler)
+    std::chrono::milliseconds timeout, ResponseHandler handler)
 {
-    request(HttpMethod::get, std::move(host), std::move(port), std::move(target), {}, {},
+    request(HttpMethod::get, std::move(host), std::move(port), std::move(target), {}, {}, timeout,
         std::move(handler));
 }
 
 void HttpsClientAsync::post(std::string host, std::string port, std::string target,
-    std::string body, ResponseHandler handler)
+    std::string body, std::chrono::milliseconds timeout, ResponseHandler handler)
 {
     request(HttpMethod::post, std::move(host), std::move(port), std::move(target), std::move(body),
-        {}, std::move(handler));
+        {}, timeout, std::move(handler));
 }
 
 void HttpsClientAsync::request(HttpMethod method, std::string host, std::string port,
-    std::string target, std::string body, std::vector<HttpHeader> headers, ResponseHandler handler)
+    std::string target, std::string body, std::vector<HttpHeader> headers,
+    std::chrono::milliseconds timeout, ResponseHandler handler)
 {
     auto self = shared_from_this();
     auto request_handler = [self, method, host = std::move(host), port = std::move(port),
                                target = std::move(target), body = std::move(body),
-                               headers = std::move(headers),
+                               headers = std::move(headers), timeout,
                                handler = std::move(handler)]() mutable {
-        self->do_request(method, std::move(host), port, target, std::move(body), headers,
+        self->do_request(method, std::move(host), port, target, std::move(body), headers, timeout,
             std::move(handler));
     };
     executor.post(std::move(request_handler));
@@ -99,7 +93,7 @@ bool HttpsClientAsync::is_busy() const
 
 void HttpsClientAsync::do_request(HttpMethod method, std::string host, const std::string &port,
     const std::string &target, std::string body, const std::vector<HttpHeader> &headers,
-    ResponseHandler handler)
+    std::chrono::milliseconds timeout, ResponseHandler handler)
 {
     if (state.load(std::memory_order_acquire) != RequestState::idle) {
         if (handler) {
@@ -111,6 +105,7 @@ void HttpsClientAsync::do_request(HttpMethod method, std::string host, const std
     set_state(RequestState::in_progress);
     const auto generation = ++request_generation;
     this->host = std::move(host);
+    this->timeout = timeout;
     response_handler = std::move(handler);
 
     http_request = {};
@@ -323,6 +318,7 @@ void HttpsClientAsync::complete_request(const std::error_code &ec, HttpResponse 
     auto handler = std::move(response_handler);
     response_handler = nullptr;
     host.clear();
+    timeout = std::chrono::milliseconds::zero();
     http_request = {};
     http_response = {};
     set_state(RequestState::idle);
@@ -333,7 +329,7 @@ void HttpsClientAsync::complete_request(const std::error_code &ec, HttpResponse 
 
 void HttpsClientAsync::apply_timeout()
 {
-    if (!stream || timeout <= std::chrono::seconds::zero()) {
+    if (!stream || timeout <= std::chrono::milliseconds::zero()) {
         return;
     }
 

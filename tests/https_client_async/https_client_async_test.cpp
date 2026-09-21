@@ -140,7 +140,7 @@ TEST(HttpsClientAsyncTest, get_returns_body_and_status)
     std::promise<std::pair<std::error_code, cpp_components::https_client_async::HttpResponse>>
         result;
     const auto result_future = result.get_future().share();
-    client->get("localhost", port_string, "/hello",
+    client->get("localhost", port_string, "/hello", std::chrono::milliseconds { 30000 },
         [&result](const std::error_code &ec,
             cpp_components::https_client_async::HttpResponse response) {
             result.set_value({ ec, std::move(response) });
@@ -174,6 +174,7 @@ TEST(HttpsClientAsyncTest, post_sends_body)
         result;
     const auto result_future = result.get_future().share();
     client->post("localhost", port_string, "/echo", "payload",
+        std::chrono::milliseconds { 30000 },
         [&result](const std::error_code &ec,
             cpp_components::https_client_async::HttpResponse response) {
             result.set_value({ ec, std::move(response) });
@@ -206,7 +207,7 @@ TEST(HttpsClientAsyncTest, custom_headers_are_sent)
         "/",
         {
     },
-        { { "X-Test", "value" } },
+        { { "X-Test", "value" } }, std::chrono::milliseconds { 30000 },
         [&result](const std::error_code &ec, const auto &) { result.set_value(ec); });
 
     ASSERT_TRUE(wait_ready(result_future));
@@ -228,7 +229,7 @@ TEST(HttpsClientAsyncTest, response_headers_are_returned)
 
     std::promise<cpp_components::https_client_async::HttpResponse> result;
     const auto result_future = result.get_future().share();
-    client->get("localhost", port_string, "/",
+    client->get("localhost", port_string, "/", std::chrono::milliseconds { 30000 },
         [&result](const std::error_code &ec,
             cpp_components::https_client_async::HttpResponse response) {
             if (!ec) {
@@ -263,12 +264,12 @@ TEST(HttpsClientAsyncTest, second_request_while_busy_fails)
 
     std::promise<std::error_code> first_result;
     const auto first_future = first_result.get_future().share();
-    client->get("localhost", port_string, "/",
+    client->get("localhost", port_string, "/", std::chrono::milliseconds { 30000 },
         [&first_result](const std::error_code &ec, const auto &) { first_result.set_value(ec); });
 
     std::promise<std::error_code> second_result;
     const auto second_future = second_result.get_future().share();
-    client->get("localhost", port_string, "/",
+    client->get("localhost", port_string, "/", std::chrono::milliseconds { 30000 },
         [&second_result](const std::error_code &ec, const auto &) { second_result.set_value(ec); });
 
     ASSERT_TRUE(wait_ready(second_future));
@@ -287,7 +288,7 @@ TEST(HttpsClientAsyncTest, cancel_aborts_in_flight_request)
 
     std::promise<std::error_code> result;
     const auto result_future = result.get_future().share();
-    client->get("192.0.2.1", "9", "/",
+    client->get("192.0.2.1", "9", "/", std::chrono::milliseconds { 30000 },
         [&result](const std::error_code &ec, const auto &) { result.set_value(ec); });
 
     client->cancel();
@@ -305,7 +306,7 @@ TEST(HttpsClientAsyncTest, connect_reports_dns_failure)
 
     std::promise<std::error_code> result;
     const auto result_future = result.get_future().share();
-    client->get("nonexistent.invalid", "443", "/",
+    client->get("nonexistent.invalid", "443", "/", std::chrono::milliseconds { 30000 },
         [&result](const std::error_code &ec, const auto &) { result.set_value(ec); });
 
     ASSERT_TRUE(wait_ready(result_future));
@@ -323,7 +324,7 @@ TEST(HttpsClientAsyncTest, connect_reports_connection_refused)
 
     std::promise<std::error_code> result;
     const auto result_future = result.get_future().share();
-    client->get("127.0.0.1", port_string, "/",
+    client->get("127.0.0.1", port_string, "/", std::chrono::milliseconds { 30000 },
         [&result](const std::error_code &ec, const auto &) { result.set_value(ec); });
 
     ASSERT_TRUE(wait_ready(result_future));
@@ -338,7 +339,8 @@ TEST(HttpsClientAsyncTest, destroy_while_busy_cleans_up)
     auto client = cpp_components::https_client_async::HttpsClientAsync::create(*executor);
     client->set_ca_certificate(TEST_CERT_DIR "/test-cert.pem");
 
-    client->get("192.0.2.1", "9", "/", [](const std::error_code &, const auto &) {});
+    client->get("192.0.2.1", "9", "/", std::chrono::milliseconds { 30000 },
+        [](const std::error_code &, const auto &) {});
 
     const std::weak_ptr<cpp_components::https_client_async::HttpsClientAsync> weak_client = client;
     client.reset();
@@ -346,7 +348,7 @@ TEST(HttpsClientAsyncTest, destroy_while_busy_cleans_up)
     EXPECT_TRUE(weak_client.expired());
 }
 
-TEST(HttpsClientAsyncTest, set_timeout_allows_successful_request)
+TEST(HttpsClientAsyncTest, request_timeout_allows_successful_request)
 {
     const auto port = start_https_server([](const auto &, auto &response) {
         response.body() = "ok";
@@ -356,11 +358,10 @@ TEST(HttpsClientAsyncTest, set_timeout_allows_successful_request)
     cpp_components::executor::Executor executor {};
     auto client = cpp_components::https_client_async::HttpsClientAsync::create(executor);
     client->set_ca_certificate(TEST_CERT_DIR "/test-cert.pem");
-    client->set_timeout(std::chrono::seconds { 5 });
 
     std::promise<std::error_code> result;
     const auto result_future = result.get_future().share();
-    client->get("localhost", port_string, "/",
+    client->get("localhost", port_string, "/", std::chrono::milliseconds { 5000 },
         [&result](const std::error_code &ec, const auto &) { result.set_value(ec); });
 
     ASSERT_TRUE(wait_ready(result_future));
@@ -368,7 +369,7 @@ TEST(HttpsClientAsyncTest, set_timeout_allows_successful_request)
     executor.stop();
 }
 
-TEST(HttpsClientAsyncTest, set_timeout_zero_disables_deadline)
+TEST(HttpsClientAsyncTest, zero_timeout_disables_deadline)
 {
     const auto port = start_https_server([](const auto &, auto &response) {
         response.body() = "ok";
@@ -378,11 +379,10 @@ TEST(HttpsClientAsyncTest, set_timeout_zero_disables_deadline)
     cpp_components::executor::Executor executor {};
     auto client = cpp_components::https_client_async::HttpsClientAsync::create(executor);
     client->set_ca_certificate(TEST_CERT_DIR "/test-cert.pem");
-    client->set_timeout(std::chrono::seconds::zero());
 
     std::promise<std::error_code> result;
     const auto result_future = result.get_future().share();
-    client->get("localhost", port_string, "/",
+    client->get("localhost", port_string, "/", std::chrono::milliseconds::zero(),
         [&result](const std::error_code &ec, const auto &) { result.set_value(ec); });
 
     ASSERT_TRUE(wait_ready(result_future));
@@ -404,7 +404,7 @@ TEST(HttpsClientAsyncTest, empty_ca_certificate_is_ignored)
 
     std::promise<std::error_code> result;
     const auto result_future = result.get_future().share();
-    client->get("localhost", port_string, "/",
+    client->get("localhost", port_string, "/", std::chrono::milliseconds { 30000 },
         [&result](const std::error_code &ec, const auto &) { result.set_value(ec); });
 
     ASSERT_TRUE(wait_ready(result_future));
@@ -442,6 +442,7 @@ TEST(HttpsClientAsyncTest, request_supports_remaining_http_methods)
         std::promise<std::error_code> result;
         const auto result_future = result.get_future().share();
         client->request(test_case.method, "localhost", port_string, "/", {}, {},
+            std::chrono::milliseconds { 30000 },
             [&result](const std::error_code &ec, const auto &) { result.set_value(ec); });
 
         ASSERT_TRUE(wait_ready(result_future));
@@ -461,7 +462,7 @@ TEST(HttpsClientAsyncTest, ssl_handshake_failure_is_reported)
 
     std::promise<std::error_code> result;
     const auto result_future = result.get_future().share();
-    client->get("localhost", port_string, "/",
+    client->get("localhost", port_string, "/", std::chrono::milliseconds { 30000 },
         [&result](const std::error_code &ec, const auto &) { result.set_value(ec); });
 
     ASSERT_TRUE(wait_ready(result_future));
