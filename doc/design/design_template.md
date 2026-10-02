@@ -96,18 +96,22 @@ Each requirement should be independently testable.
 
 Example:
 
-- The system shall validate configuration before initialization.
-- The system shall reject duplicate identifiers.
-- The system shall support incremental updates.
+| ID | Requirement |
+|----|-------------|
+| FR-1 | The system shall validate configuration before initialization. |
+| FR-2 | The system shall reject duplicate identifiers. |
+| FR-3 | The system shall support incremental updates. |
 
 ### Non-Functional Requirements
 
-- **Performance:** latency/throughput targets, hot-path constraints
-- **Memory:** budget, allocation patterns (stack vs heap), footprint limits
-- **Concurrency/Thread-safety:** expected threading model
-- **Portability:** target platforms/compilers (e.g., GCC/Clang/MSVC, Linux/Windows/embedded)
-- **ABI/API stability:** is this a public API? Versioning concerns?
-- **Real-time constraints:** if applicable (no dynamic allocation, bounded execution time, etc.)
+| Category | Target |
+|----------|--------|
+| **Performance** | Latency/throughput targets, hot-path constraints. |
+| **Memory** | Budget, allocation patterns (stack vs heap), footprint limits. |
+| **Concurrency/Thread-safety** | Expected threading model. |
+| **Portability** | Target platforms/compilers (e.g., GCC/Clang/MSVC, Linux/Windows/embedded). |
+| **ABI/API stability** | Is this a public API? Versioning concerns? |
+| **Real-time constraints** | If applicable (no dynamic allocation, bounded execution time, etc.). |
 
 ---
 
