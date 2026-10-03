@@ -1,0 +1,38 @@
+name: Unit Tests
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+    branches: [master]
+  workflow_dispatch:
+
+jobs:
+  unit-tests:
+    runs-on: ubuntu-24.04
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # Same packages as docker/Dockerfile
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            build-essential \
+            cmake \
+            libboost-dev \
+            libboost-system-dev \
+            libcurl4-openssl-dev \
+            libssl-dev \
+            liburing-dev
+
+      - name: Configure
+        run: cmake --preset tests
+
+      - name: Build
+        run: cmake --build --preset tests
+
+      - name: Test
+        run: ctest --preset tests
