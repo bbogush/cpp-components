@@ -8,20 +8,20 @@
   "configurePresets": [
     {
       "name": "release",
-      "displayName": "Release (-O2 -DNDEBUG)",
+      "displayName": "Release (-O3 -DNDEBUG)",
       "binaryDir": "${sourceDir}/build/release",
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Release",
-        "CMAKE_CXX_FLAGS_RELEASE": "-O2 -DNDEBUG"
+        "CMAKE_CXX_FLAGS_RELEASE": "-O3 -DNDEBUG"
       }
     },
     {
       "name": "relwithdebinfo",
-      "displayName": "RelWithDebInfo (-O2 -g -fno-omit-frame-pointer -DNDEBUG)",
+      "displayName": "RelWithDebInfo (-O3 -g -fno-omit-frame-pointer -DNDEBUG)",
       "binaryDir": "${sourceDir}/build/relwithdebinfo",
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "RelWithDebInfo",
-        "CMAKE_CXX_FLAGS_RELWITHDEBINFO": "-O2 -g -fno-omit-frame-pointer -DNDEBUG"
+        "CMAKE_CXX_FLAGS_RELWITHDEBINFO": "-O3 -g -fno-omit-frame-pointer -DNDEBUG"
       }
     },
     {

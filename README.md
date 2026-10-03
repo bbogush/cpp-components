@@ -126,7 +126,7 @@ ctest --preset tests
 
 Benchmarks use [Google Benchmark](https://github.com/google/benchmark), fetched automatically by
 CMake. The `benchmarks` preset builds in `build/benchmarks` with `BUILD_BENCHMARKS` enabled and
-RelWithDebInfo (`-O2 -g -fno-omit-frame-pointer`) so timings stay optimized while
+RelWithDebInfo (`-O3 -g -fno-omit-frame-pointer`) so timings stay optimized while
 `perf` can resolve symbols and unwind stacks.
 
 ```bash
