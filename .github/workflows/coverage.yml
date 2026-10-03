@@ -1,0 +1,61 @@
+name: Coverage
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+    branches: [master]
+  workflow_dispatch:
+
+env:
+  MIN_LINE_COVERAGE: 90
+
+jobs:
+  coverage:
+    runs-on: ubuntu-24.04
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # Same packages as docker/Dockerfile
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            build-essential \
+            cmake \
+            lcov \
+            libboost-dev \
+            libboost-system-dev \
+            libcurl4-openssl-dev \
+            libssl-dev \
+            liburing-dev
+
+      - name: Configure
+        run: cmake --preset coverage
+
+      - name: Build
+        run: cmake --build --preset coverage
+
+      - name: Test
+        run: ctest --preset coverage
+
+      - name: Generate report
+        run: cmake --build --preset coverage-report
+
+      - name: Upload HTML report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: build/coverage/coverage-report
+          if-no-files-found: ignore
+
+      - name: Check line coverage >= ${{ env.MIN_LINE_COVERAGE }}%
+        run: |
+          if ! lcov --summary build/coverage/coverage-src.info \
+                    --fail-under-lines "$MIN_LINE_COVERAGE"; then
+            echo "::error::Line coverage of cpp_components/ is below ${MIN_LINE_COVERAGE}%"
+            exit 1
+          fi
