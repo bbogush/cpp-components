@@ -23,6 +23,7 @@ jobs:
             build-essential \
             cmake \
             libboost-dev \
+            libboost-system-dev \
             libcurl4-openssl-dev \
             libssl-dev \
             liburing-dev
