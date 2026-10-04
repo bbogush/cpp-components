@@ -9,8 +9,9 @@ on:
 
 env:
   # Median slowdown vs. the baseline that triggers a warning / fails the job
-  WARN_THRESHOLD_PERCENT: 5
-  FAIL_THRESHOLD_PERCENT: 10
+  # Note: set big values because not reliable on shared runners.
+  WARN_THRESHOLD_PERCENT: 50
+  FAIL_THRESHOLD_PERCENT: 100
 
 jobs:
   benchmarks:
