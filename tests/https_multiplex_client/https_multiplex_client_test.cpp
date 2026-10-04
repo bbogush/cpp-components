@@ -65,8 +65,8 @@ struct HttpsServer {
     HttpsServer() = default;
     HttpsServer(const HttpsServer &) = delete;
     HttpsServer &operator=(const HttpsServer &) = delete;
-    HttpsServer(HttpsServer &&other) noexcept
-        : port(other.port), thread(std::move(other.thread)), stop(std::move(other.stop))
+    HttpsServer(HttpsServer &&other) noexcept :
+        port(other.port), thread(std::move(other.thread)), stop(std::move(other.stop))
     {
         other.port = 0;
     }
@@ -539,6 +539,12 @@ TEST(HttpsMultiplexClientTest, remaining_http_methods_are_supported)
         { HttpMethod::patch, boost::beast::http::verb::patch   },
     };
 
+    // One executor and client for all cases: each io_context owns an io_uring
+    // ring, and creating rings in a tight loop can make io_uring_queue_init fail.
+    cpp_components::executor::Executor executor {};
+    auto client = cpp_components::https_multiplex_client::HttpsMultiplexClient::create(executor);
+    client->set_ca_certificate(TEST_CERT_DIR "/test-cert.pem");
+
     for (const auto &test_case : cases) {
         auto server = start_https_server(1,
             [expected = test_case.expected](const auto &request, auto &response) {
@@ -548,11 +554,6 @@ TEST(HttpsMultiplexClientTest, remaining_http_methods_are_supported)
             });
         const auto port_string = std::to_string(server.port);
 
-        cpp_components::executor::Executor executor {};
-        auto client = cpp_components::https_multiplex_client::HttpsMultiplexClient::create(
-            executor);
-        client->set_ca_certificate(TEST_CERT_DIR "/test-cert.pem");
-
         std::promise<std::error_code> result;
         const auto result_future = result.get_future().share();
         client->request(test_case.method, "localhost", port_string, "/", "body", {},
@@ -561,8 +562,8 @@ TEST(HttpsMultiplexClientTest, remaining_http_methods_are_supported)
 
         ASSERT_TRUE(wait_ready(result_future));
         EXPECT_FALSE(result_future.get());
-        executor.stop();
     }
+    executor.stop();
 }
 
 TEST(HttpsMultiplexClientTest, zero_timeout_still_allows_request)
