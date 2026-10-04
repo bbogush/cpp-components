@@ -8,8 +8,9 @@ on:
   workflow_dispatch:
 
 env:
-  # Warn when a benchmark is this many percent slower than the baseline
-  REGRESSION_THRESHOLD_PERCENT: 5
+  # Median slowdown vs. the baseline that triggers a warning / fails the job
+  WARN_THRESHOLD_PERCENT: 5
+  FAIL_THRESHOLD_PERCENT: 10
 
 jobs:
   benchmarks:
@@ -34,9 +35,7 @@ jobs:
             libboost-system-dev \
             libcurl4-openssl-dev \
             libssl-dev \
-            liburing-dev \
-            python3-numpy \
-            python3-scipy
+            liburing-dev
 
       - name: Configure
         run: cmake --preset benchmarks
@@ -67,65 +66,80 @@ jobs:
           fi
           echo "run_id=$run_id" >> "$GITHUB_OUTPUT"
 
+      # Compares the median of the repetitions: items_per_second where a benchmark
+      # reports it (the throughput benchmarks run for a fixed time), else real_time.
       - name: Compare with baseline
         if: steps.baseline.outputs.run_id != ''
         env:
+          BASELINE_RUN_ID: ${{ steps.baseline.outputs.run_id }}
           BASELINE_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ steps.baseline.outputs.run_id }}
         run: |
-          compare=build/benchmarks/_deps/googlebenchmark-src/tools/compare.py
-          {
-            echo "## Benchmark comparison"
-            echo
-            echo "Baseline: [run ${{ steps.baseline.outputs.run_id }}]($BASELINE_URL)." \
-              "Time columns are relative change (negative is faster)."
-            for result in build/benchmarks/benchmark-results/*.json; do
-              name=$(basename "$result" .json)
-              echo
-              echo "### $name"
-              if [ ! -f "baseline/$name.json" ]; then
-                echo "No baseline."
-                continue
-              fi
-              echo '```'
-              python3 "$compare" --no-color benchmarks "baseline/$name.json" "$result" | tail -n +2
-              echo '```'
-            done
-          } >> "$GITHUB_STEP_SUMMARY"
-
-          # compare.py only compares times; throughput benchmarks run for a fixed
-          # time, so compare items_per_second where a benchmark reports it.
           python3 - <<'EOF'
-          import json, os, pathlib
+          import json, os, pathlib, sys
 
-          threshold = float(os.environ["REGRESSION_THRESHOLD_PERCENT"]) / 100
-          regressions = []
+          warn = float(os.environ["WARN_THRESHOLD_PERCENT"]) / 100
+          fail = float(os.environ["FAIL_THRESHOLD_PERCENT"]) / 100
+
+          def aggregates(path):
+              result = {}
+              for bench in json.loads(path.read_text())["benchmarks"]:
+                  if bench.get("run_type") == "aggregate":
+                      result.setdefault(bench["run_name"], {})[bench["aggregate_name"]] = bench
+              return result
+
+          def fmt(value, metric, unit):
+              if metric == "items_per_second":
+                  for limit, suffix in ((1e9, "G"), (1e6, "M"), (1e3, "k")):
+                      if value >= limit:
+                          return f"{value / limit:.2f}{suffix}/s"
+                  return f"{value:.2f}/s"
+              return f"{value:.4g} {unit}"
+
+          rows, failures = [], []
           for result in sorted(pathlib.Path("build/benchmarks/benchmark-results").glob("*.json")):
-              baseline = pathlib.Path("baseline") / result.name
-              if not baseline.exists():
-                  continue
-              old = {b["name"]: b for b in json.loads(baseline.read_text())["benchmarks"]}
-              for new in json.loads(result.read_text())["benchmarks"]:
-                  prev = old.get(new["name"])
-                  if prev is None or new.get("run_type") != "iteration":
+              baseline_path = pathlib.Path("baseline") / result.name
+              baseline = aggregates(baseline_path) if baseline_path.exists() else {}
+              for name, current in aggregates(result).items():
+                  median = current.get("median")
+                  if median is None:
                       continue
-                  if "items_per_second" in new and "items_per_second" in prev:
-                      change = new["items_per_second"] / prev["items_per_second"] - 1
-                      if change < -threshold:
-                          regressions.append(f"{result.stem} {new['name']}: items_per_second {change:+.1%}")
+                  metric = "items_per_second" if "items_per_second" in median else "real_time"
+                  unit = median.get("time_unit", "ns")
+                  noise = current.get("cv", {}).get(metric)
+                  noise_text = f"{noise:.1%}" if noise is not None else "-"
+                  old = baseline.get(name, {}).get("median")
+                  if old is None or metric not in old:
+                      rows.append((result.stem, name, metric, "-", fmt(median[metric], metric, unit), "-", noise_text, "new"))
+                      continue
+                  # Positive change = faster, negative = slower
+                  if metric == "items_per_second":
+                      change = median[metric] / old[metric] - 1
                   else:
-                      change = new["real_time"] / prev["real_time"] - 1
-                      if change > threshold:
-                          regressions.append(f"{result.stem} {new['name']}: real_time {change:+.1%}")
+                      change = old[metric] / median[metric] - 1
+                  if change < -fail:
+                      status = "❌ fail"
+                      failures.append(f"{result.stem} {name}: {metric} median {change:+.1%}")
+                  elif change < -warn:
+                      status = "⚠️ warning"
+                      print(f"::warning title=Benchmark regression::{result.stem} {name}: {metric} median {change:+.1%}")
+                  else:
+                      status = "✅ ok"
+                  rows.append((result.stem, name, metric, fmt(old[metric], metric, unit),
+                               fmt(median[metric], metric, unit), f"{change:+.1%}", noise_text, status))
 
           with open(os.environ["GITHUB_STEP_SUMMARY"], "a") as summary:
-              summary.write("\n")
-              if regressions:
-                  summary.write(f"**Regressions over {threshold:.0%}:**\n")
-                  summary.writelines(f"- {line}\n" for line in regressions)
-              else:
-                  summary.write(f"No regressions over {threshold:.0%}.\n")
-          for line in regressions:
-              print(f"::warning title=Benchmark regression::{line}")
+              summary.write("## Benchmark comparison\n\n")
+              summary.write(f"Baseline: [run {os.environ['BASELINE_RUN_ID']}]({os.environ['BASELINE_URL']}). "
+                            "Medians of the repetitions; change is positive when faster. "
+                            f"Warning below -{warn:.0%}, failure below -{fail:.0%}. "
+                            "Noise is the current run's coefficient of variation.\n\n")
+              summary.write("| Binary | Benchmark | Metric | Baseline | Current | Change | Noise | Status |\n")
+              summary.write("|---|---|---|--:|--:|--:|--:|---|\n")
+              summary.writelines("| " + " | ".join(row) + " |\n" for row in rows)
+
+          for line in failures:
+              print(f"::error title=Benchmark regression::{line}")
+          sys.exit(1 if failures else 0)
           EOF
 
       - name: Upload JSON results
