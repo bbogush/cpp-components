@@ -9,4 +9,4 @@ set_target_properties(executor_test PROPERTIES
   RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}"
 )
 
-gtest_discover_tests(executor_test)
+gtest_discover_tests(executor_test PROPERTIES TIMEOUT 120)

@@ -16,4 +16,4 @@ set_target_properties(secure_websocket_client_test PROPERTIES
   RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}"
 )
 
-gtest_discover_tests(secure_websocket_client_test)
+gtest_discover_tests(secure_websocket_client_test PROPERTIES TIMEOUT 120)

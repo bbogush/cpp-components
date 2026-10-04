@@ -16,4 +16,4 @@ set_target_properties(https_client_async_test PROPERTIES
   RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}"
 )
 
-gtest_discover_tests(https_client_async_test)
+gtest_discover_tests(https_client_async_test PROPERTIES TIMEOUT 120)
