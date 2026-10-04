@@ -6,6 +6,7 @@ ENV DEBIAN_FRONTEND=noninteractive
 # Install essential build tools
 RUN apt-get update && apt-get install -y \
     build-essential \
+    clang-format \
     clang-tidy \
     cmake \
     git \

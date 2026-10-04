@@ -139,6 +139,14 @@
       ]
     },
     {
+      "name": "clang-format-check",
+      "inherits": "default-build",
+      "configurePreset": "debug",
+      "targets": [
+        "clang-format-check"
+      ]
+    },
+    {
       "name": "benchmarks",
       "inherits": "default-build",
       "configurePreset": "benchmarks"

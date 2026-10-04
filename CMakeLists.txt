@@ -46,6 +46,16 @@ if(CMAKE_PROJECT_NAME STREQUAL PROJECT_NAME)
     )
   endif()
 
+  add_custom_target(clang-format-check
+    COMMAND "${CMAKE_COMMAND}"
+            -DCLANG_FORMAT_SOURCE_DIR=${CMAKE_SOURCE_DIR}
+            -P ${CMAKE_SOURCE_DIR}/cmake/clang_format.cmake
+    WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
+    COMMENT "Checking clang-format on tracked C++ sources"
+    USES_TERMINAL
+    VERBATIM
+  )
+
   if(ENABLE_CLANG_TIDY)
     set(CLANG_TIDY_JOBS 0 CACHE STRING "Parallel clang-tidy jobs (0 = auto-detect CPU count)")
 
