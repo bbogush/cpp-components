@@ -1,0 +1,28 @@
+name: Clang-Format
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+    branches: [master]
+  workflow_dispatch:
+
+jobs:
+  clang-format:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # Ubuntu 24.04 clang-format (18), matching the Docker image toolchain
+      - name: Install clang-format
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y clang-format
+          clang-format --version
+
+      # Same check as the clang-format-check preset, without configuring the project
+      - name: Check formatting
+        run: cmake -P cmake/clang_format.cmake
