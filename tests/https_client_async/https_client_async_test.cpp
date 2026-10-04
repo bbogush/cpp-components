@@ -173,8 +173,7 @@ TEST(HttpsClientAsyncTest, post_sends_body)
     std::promise<std::pair<std::error_code, cpp_components::https_client_async::HttpResponse>>
         result;
     const auto result_future = result.get_future().share();
-    client->post("localhost", port_string, "/echo", "payload",
-        std::chrono::milliseconds { 30000 },
+    client->post("localhost", port_string, "/echo", "payload", std::chrono::milliseconds { 30000 },
         [&result](const std::error_code &ec,
             cpp_components::https_client_async::HttpResponse response) {
             result.set_value({ ec, std::move(response) });
@@ -350,9 +349,8 @@ TEST(HttpsClientAsyncTest, destroy_while_busy_cleans_up)
 
 TEST(HttpsClientAsyncTest, request_timeout_allows_successful_request)
 {
-    const auto port = start_https_server([](const auto &, auto &response) {
-        response.body() = "ok";
-    });
+    const auto port = start_https_server(
+        [](const auto &, auto &response) { response.body() = "ok"; });
     const auto port_string = std::to_string(port);
 
     cpp_components::executor::Executor executor {};
@@ -371,9 +369,8 @@ TEST(HttpsClientAsyncTest, request_timeout_allows_successful_request)
 
 TEST(HttpsClientAsyncTest, zero_timeout_disables_deadline)
 {
-    const auto port = start_https_server([](const auto &, auto &response) {
-        response.body() = "ok";
-    });
+    const auto port = start_https_server(
+        [](const auto &, auto &response) { response.body() = "ok"; });
     const auto port_string = std::to_string(port);
 
     cpp_components::executor::Executor executor {};
@@ -392,9 +389,8 @@ TEST(HttpsClientAsyncTest, zero_timeout_disables_deadline)
 
 TEST(HttpsClientAsyncTest, empty_ca_certificate_is_ignored)
 {
-    const auto port = start_https_server([](const auto &, auto &response) {
-        response.body() = "ok";
-    });
+    const auto port = start_https_server(
+        [](const auto &, auto &response) { response.body() = "ok"; });
     const auto port_string = std::to_string(port);
 
     cpp_components::executor::Executor executor {};
@@ -420,10 +416,10 @@ TEST(HttpsClientAsyncTest, request_supports_remaining_http_methods)
         HttpMethod method;
         boost::beast::http::verb expected;
     } cases[] = {
-        { HttpMethod::head, boost::beast::http::verb::head },
-        { HttpMethod::put, boost::beast::http::verb::put },
-        { HttpMethod::del, boost::beast::http::verb::delete_ },
-        { HttpMethod::patch, boost::beast::http::verb::patch },
+        { HttpMethod::head,  boost::beast::http::verb::head    },
+        { HttpMethod::put,   boost::beast::http::verb::put     },
+        { HttpMethod::del,   boost::beast::http::verb::delete_ },
+        { HttpMethod::patch, boost::beast::http::verb::patch   },
     };
 
     for (const auto &test_case : cases) {
@@ -470,4 +466,3 @@ TEST(HttpsClientAsyncTest, ssl_handshake_failure_is_reported)
     EXPECT_FALSE(client->is_busy());
     executor.stop();
 }
-

@@ -11,8 +11,7 @@
 
 namespace cpp_components::executor {
 
-Executor::Executor() :
-    work(std::make_unique<boost::asio::io_context::work>(io_context))
+Executor::Executor() : work(std::make_unique<boost::asio::io_context::work>(io_context))
 {
     thread = std::thread([this]() {
         boost::system::error_code ec;

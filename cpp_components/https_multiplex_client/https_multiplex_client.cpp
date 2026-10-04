@@ -289,8 +289,8 @@ std::error_code HttpsMultiplexClient::configure_easy_handle(
     curl_easy_setopt(easy, CURLOPT_TCP_KEEPALIVE, 1L);
     curl_easy_setopt(easy, CURLOPT_FOLLOWLOCATION, 1L);
 
-    const long timeout_ms =
-        conn->timeout.count() > 0 ? static_cast<long>(conn->timeout.count()) : 0L;
+    const long timeout_ms = conn->timeout.count() > 0 ? static_cast<long>(conn->timeout.count()) :
+                                                        0L;
     curl_easy_setopt(easy, CURLOPT_TIMEOUT_MS, timeout_ms);
     curl_easy_setopt(easy, CURLOPT_CONNECTTIMEOUT_MS, timeout_ms > 0 ? timeout_ms : 5000L);
 
