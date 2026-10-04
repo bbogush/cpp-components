@@ -7,10 +7,17 @@ on:
     branches: [master]
   workflow_dispatch:
 
+env:
+  # Warn when a benchmark is this many percent slower than the baseline
+  REGRESSION_THRESHOLD_PERCENT: 5
+
 jobs:
   benchmarks:
     runs-on: ubuntu-24.04
     timeout-minutes: 10
+    permissions:
+      actions: read # download the baseline artifact from an earlier run
+      contents: read
 
     steps:
       - name: Checkout
@@ -27,7 +34,9 @@ jobs:
             libboost-system-dev \
             libcurl4-openssl-dev \
             libssl-dev \
-            liburing-dev
+            liburing-dev \
+            python3-numpy \
+            python3-scipy
 
       - name: Configure
         run: cmake --preset benchmarks
@@ -38,6 +47,86 @@ jobs:
       # Writes build/benchmarks/benchmark-results/<binary>.json
       - name: Run benchmarks
         run: cmake --build --preset benchmarks-report
+
+      # Baseline: results of the latest successful run on master
+      - name: Download baseline
+        id: baseline
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          run_id=$(gh run list --workflow benchmarks.yml --branch master --status success \
+            --limit 1 --json databaseId --jq '.[0].databaseId // empty')
+          if [ -z "$run_id" ]; then
+            echo "::notice::No successful master run to compare against"
+            exit 0
+          fi
+          if ! gh run download "$run_id" --name benchmark-results --dir baseline; then
+            echo "::notice::Baseline artifact of run $run_id is unavailable (expired?)"
+            exit 0
+          fi
+          echo "run_id=$run_id" >> "$GITHUB_OUTPUT"
+
+      - name: Compare with baseline
+        if: steps.baseline.outputs.run_id != ''
+        env:
+          BASELINE_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ steps.baseline.outputs.run_id }}
+        run: |
+          compare=build/benchmarks/_deps/googlebenchmark-src/tools/compare.py
+          {
+            echo "## Benchmark comparison"
+            echo
+            echo "Baseline: [run ${{ steps.baseline.outputs.run_id }}]($BASELINE_URL)." \
+              "Time columns are relative change (negative is faster)."
+            for result in build/benchmarks/benchmark-results/*.json; do
+              name=$(basename "$result" .json)
+              echo
+              echo "### $name"
+              if [ ! -f "baseline/$name.json" ]; then
+                echo "No baseline."
+                continue
+              fi
+              echo '```'
+              python3 "$compare" --no-color benchmarks "baseline/$name.json" "$result" | tail -n +2
+              echo '```'
+            done
+          } >> "$GITHUB_STEP_SUMMARY"
+
+          # compare.py only compares times; throughput benchmarks run for a fixed
+          # time, so compare items_per_second where a benchmark reports it.
+          python3 - <<'EOF'
+          import json, os, pathlib
+
+          threshold = float(os.environ["REGRESSION_THRESHOLD_PERCENT"]) / 100
+          regressions = []
+          for result in sorted(pathlib.Path("build/benchmarks/benchmark-results").glob("*.json")):
+              baseline = pathlib.Path("baseline") / result.name
+              if not baseline.exists():
+                  continue
+              old = {b["name"]: b for b in json.loads(baseline.read_text())["benchmarks"]}
+              for new in json.loads(result.read_text())["benchmarks"]:
+                  prev = old.get(new["name"])
+                  if prev is None or new.get("run_type") != "iteration":
+                      continue
+                  if "items_per_second" in new and "items_per_second" in prev:
+                      change = new["items_per_second"] / prev["items_per_second"] - 1
+                      if change < -threshold:
+                          regressions.append(f"{result.stem} {new['name']}: items_per_second {change:+.1%}")
+                  else:
+                      change = new["real_time"] / prev["real_time"] - 1
+                      if change > threshold:
+                          regressions.append(f"{result.stem} {new['name']}: real_time {change:+.1%}")
+
+          with open(os.environ["GITHUB_STEP_SUMMARY"], "a") as summary:
+              summary.write("\n")
+              if regressions:
+                  summary.write(f"**Regressions over {threshold:.0%}:**\n")
+                  summary.writelines(f"- {line}\n" for line in regressions)
+              else:
+                  summary.write(f"No regressions over {threshold:.0%}.\n")
+          for line in regressions:
+              print(f"::warning title=Benchmark regression::{line}")
+          EOF
 
       - name: Upload JSON results
         if: always()
