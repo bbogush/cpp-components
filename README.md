@@ -137,6 +137,12 @@ cmake --build --preset benchmarks-report
 
 The `benchmarks-report` preset builds any missing benchmark binaries and runs them all
 (equivalent to invoking each `*_benchmark` executable under `build/benchmarks/`).
+Each binary also writes JSON results to `build/benchmarks/benchmark-results/<binary>.json`;
+render them as a Markdown table with:
+
+```bash
+python3 benchmarks/benchmark_summary.py build/benchmarks/benchmark-results/*.json
+```
 
 Benchmark binaries:
 
