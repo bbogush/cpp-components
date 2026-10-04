@@ -45,6 +45,16 @@ jobs:
       - name: Generate report
         run: cmake --build --preset coverage-report
 
+      - name: Add coverage summary
+        if: always() && hashFiles('build/coverage/coverage-src.info') != ''
+        run: |
+          {
+            echo '### Coverage (cpp_components/)'
+            echo '```'
+            lcov --summary build/coverage/coverage-src.info 2>&1
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
       - name: Upload HTML report
         if: always()
         uses: actions/upload-artifact@v4
