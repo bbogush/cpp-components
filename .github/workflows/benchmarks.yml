@@ -39,16 +39,6 @@ jobs:
       - name: Run benchmarks
         run: cmake --build --preset benchmarks-report
 
-      # Shared runners are noisy: results are informational, not a regression gate.
-      - name: Add benchmark summary
-        if: always() && hashFiles('build/benchmarks/benchmark-results/*.json') != ''
-        run: |
-          {
-            echo '## Benchmarks'
-            echo
-            python3 benchmarks/benchmark_summary.py build/benchmarks/benchmark-results/*.json
-          } >> "$GITHUB_STEP_SUMMARY"
-
       - name: Upload JSON results
         if: always()
         uses: actions/upload-artifact@v4
