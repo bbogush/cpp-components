@@ -59,7 +59,7 @@ public:
 
     void set_ca_certificate(const std::string &ca_certificate_file);
 
-    size_t get_read_buffer_size() const;
+    static size_t get_read_buffer_size();
 
 protected:
     using Tcp = boost::asio::ip::tcp;

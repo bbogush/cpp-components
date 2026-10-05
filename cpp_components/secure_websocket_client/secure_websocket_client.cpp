@@ -151,7 +151,7 @@ void SecureWebSocketClient::set_ca_certificate(const std::string &ca_certificate
     ssl_context.load_verify_file(ca_certificate_file);
 }
 
-size_t SecureWebSocketClient::get_read_buffer_size() const
+size_t SecureWebSocketClient::get_read_buffer_size()
 {
     return read_buffer_size;
 }
