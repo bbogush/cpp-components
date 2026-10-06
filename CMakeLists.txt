@@ -23,52 +23,55 @@ target_compile_features(project_features INTERFACE cxx_std_20)
 
 add_subdirectory(cpp_components)
 
-if(CMAKE_PROJECT_NAME STREQUAL PROJECT_NAME)
-  if(BUILD_TESTING)
-    enable_testing()
-    add_subdirectory(tests)
-  endif()
+# If embedded into another cmake project skip the tests
+if(NOT CMAKE_PROJECT_NAME STREQUAL PROJECT_NAME)
+  return()
+endif()
 
-  if(BUILD_BENCHMARKS)
-    add_subdirectory(benchmarks)
-  endif()
+if(BUILD_TESTING)
+  enable_testing()
+  add_subdirectory(tests)
+endif()
 
-  if(ENABLE_COVERAGE AND BUILD_TESTING)
-    add_custom_target(coverage-report
-      COMMAND "${CMAKE_COMMAND}"
-              -DCOVERAGE_BINARY_DIR=${CMAKE_BINARY_DIR}
-              -DCOVERAGE_SOURCE_DIR=${CMAKE_SOURCE_DIR}
-              -P ${CMAKE_SOURCE_DIR}/cmake/coverage_report.cmake
-      WORKING_DIRECTORY "${CMAKE_BINARY_DIR}"
-      COMMENT "Generating cpp_components/ coverage report (lcov CLI + HTML)"
-      USES_TERMINAL
-      VERBATIM
-    )
-  endif()
+if(BUILD_BENCHMARKS)
+  add_subdirectory(benchmarks)
+endif()
 
-  add_custom_target(clang-format-check
+if(ENABLE_COVERAGE AND BUILD_TESTING)
+  add_custom_target(coverage-report
     COMMAND "${CMAKE_COMMAND}"
-            -DCLANG_FORMAT_SOURCE_DIR=${CMAKE_SOURCE_DIR}
-            -P ${CMAKE_SOURCE_DIR}/cmake/clang_format.cmake
-    WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
-    COMMENT "Checking clang-format on tracked C++ sources"
+            -DCOVERAGE_BINARY_DIR=${CMAKE_BINARY_DIR}
+            -DCOVERAGE_SOURCE_DIR=${CMAKE_SOURCE_DIR}
+            -P ${CMAKE_SOURCE_DIR}/cmake/coverage_report.cmake
+    WORKING_DIRECTORY "${CMAKE_BINARY_DIR}"
+    COMMENT "Generating cpp_components/ coverage report (lcov CLI + HTML)"
     USES_TERMINAL
     VERBATIM
   )
+endif()
 
-  if(ENABLE_CLANG_TIDY)
-    set(CLANG_TIDY_JOBS 0 CACHE STRING "Parallel clang-tidy jobs (0 = auto-detect CPU count)")
+add_custom_target(clang-format-check
+  COMMAND "${CMAKE_COMMAND}"
+          -DCLANG_FORMAT_SOURCE_DIR=${CMAKE_SOURCE_DIR}
+          -P ${CMAKE_SOURCE_DIR}/cmake/clang_format.cmake
+  WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
+  COMMENT "Checking clang-format on tracked C++ sources"
+  USES_TERMINAL
+  VERBATIM
+)
 
-    add_custom_target(clang-tidy
-      COMMAND "${CMAKE_COMMAND}"
-              -DCLANG_TIDY_BINARY_DIR=${CMAKE_BINARY_DIR}
-              -DCLANG_TIDY_SOURCE_DIR=${CMAKE_SOURCE_DIR}
-              -DCLANG_TIDY_JOBS=${CLANG_TIDY_JOBS}
-              -P ${CMAKE_SOURCE_DIR}/cmake/clang_tidy.cmake
-      WORKING_DIRECTORY "${CMAKE_BINARY_DIR}"
-      COMMENT "Running clang-tidy on cpp_components/"
-      USES_TERMINAL
-      VERBATIM
-    )
-  endif()
+if(ENABLE_CLANG_TIDY)
+  set(CLANG_TIDY_JOBS 0 CACHE STRING "Parallel clang-tidy jobs (0 = auto-detect CPU count)")
+
+  add_custom_target(clang-tidy
+    COMMAND "${CMAKE_COMMAND}"
+            -DCLANG_TIDY_BINARY_DIR=${CMAKE_BINARY_DIR}
+            -DCLANG_TIDY_SOURCE_DIR=${CMAKE_SOURCE_DIR}
+            -DCLANG_TIDY_JOBS=${CLANG_TIDY_JOBS}
+            -P ${CMAKE_SOURCE_DIR}/cmake/clang_tidy.cmake
+    WORKING_DIRECTORY "${CMAKE_BINARY_DIR}"
+    COMMENT "Running clang-tidy on cpp_components/"
+    USES_TERMINAL
+    VERBATIM
+  )
 endif()
