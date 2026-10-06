@@ -28,7 +28,8 @@ jobs:
             libboost-system-dev \
             libcurl4-openssl-dev \
             libssl-dev \
-            liburing-dev
+            liburing-dev \
+            ninja-build
 
       - name: Configure
         run: cmake --preset clang-tidy

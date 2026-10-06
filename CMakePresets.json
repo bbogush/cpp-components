@@ -7,9 +7,15 @@
   },
   "configurePresets": [
     {
+      "name": "base",
+      "hidden": true,
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/build/${presetName}"
+    },
+    {
       "name": "release",
       "displayName": "Release (-O3 -DNDEBUG)",
-      "binaryDir": "${sourceDir}/build/release",
+      "inherits": "base",
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Release",
         "CMAKE_CXX_FLAGS_RELEASE": "-O3 -DNDEBUG"
@@ -18,7 +24,7 @@
     {
       "name": "relwithdebinfo",
       "displayName": "RelWithDebInfo (-O3 -g -fno-omit-frame-pointer -DNDEBUG)",
-      "binaryDir": "${sourceDir}/build/relwithdebinfo",
+      "inherits": "base",
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "RelWithDebInfo",
         "CMAKE_CXX_FLAGS_RELWITHDEBINFO": "-O3 -g -fno-omit-frame-pointer -DNDEBUG"
@@ -27,7 +33,7 @@
     {
       "name": "debug",
       "displayName": "Debug (-O0 -g)",
-      "binaryDir": "${sourceDir}/build/debug",
+      "inherits": "base",
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Debug",
         "CMAKE_CXX_FLAGS_DEBUG": "-O0 -g"
@@ -36,7 +42,7 @@
     {
       "name": "asan",
       "displayName": "ASan (-O1 -g -fsanitize=address,undefined -fno-omit-frame-pointer)",
-      "binaryDir": "${sourceDir}/build/asan",
+      "inherits": "base",
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Debug",
         "CMAKE_CXX_FLAGS_DEBUG": "-O1 -g -fsanitize=address,undefined -fno-omit-frame-pointer",
@@ -47,7 +53,6 @@
       "name": "tests",
       "displayName": "Tests (ASan + unit tests)",
       "inherits": "asan",
-      "binaryDir": "${sourceDir}/build/tests",
       "cacheVariables": {
         "BUILD_TESTING": "ON"
       }
@@ -56,7 +61,6 @@
       "name": "coverage",
       "displayName": "Coverage (cpp_components/ only, -O0 -g --coverage + unit tests)",
       "inherits": "debug",
-      "binaryDir": "${sourceDir}/build/coverage",
       "cacheVariables": {
         "BUILD_TESTING": "ON",
         "ENABLE_COVERAGE": "ON"
@@ -66,7 +70,6 @@
       "name": "clang-tidy",
       "displayName": "Clang-Tidy (static analysis on cpp_components/)",
       "inherits": "debug",
-      "binaryDir": "${sourceDir}/build/clang-tidy",
       "cacheVariables": {
         "ENABLE_CLANG_TIDY": "ON"
       }
@@ -75,7 +78,6 @@
       "name": "benchmarks",
       "displayName": "Benchmarks (RelWithDebInfo + Google Benchmark)",
       "inherits": "relwithdebinfo",
-      "binaryDir": "${sourceDir}/build/benchmarks",
       "cacheVariables": {
         "BUILD_BENCHMARKS": "ON"
       }

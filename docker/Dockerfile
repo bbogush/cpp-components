@@ -15,7 +15,8 @@ RUN apt-get update && apt-get install -y \
     libboost-system-dev \
     libcurl4-openssl-dev \
     libssl-dev \
-    liburing-dev
+    liburing-dev \
+    ninja-build
 
 # Use a non-root user ubuntu
 ARG USERNAME=ubuntu
