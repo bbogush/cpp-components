@@ -1,5 +1,6 @@
 {
     "editor.formatOnSave": true,
+    "editor.inlayHints.enabled": "offUnlessPressed",
     "[c]": {
         "editor.defaultFormatter": "llvm-vs-code-extensions.vscode-clangd"
     },
@@ -7,7 +8,7 @@
         "editor.defaultFormatter": "llvm-vs-code-extensions.vscode-clangd"
     },
     "clangd.arguments": [
-        "--compile-commands-dir=build",
+        "--compile-commands-dir=build/debug",
         "--background-index",
         "--clang-tidy",
         "-j=4"
