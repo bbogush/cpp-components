@@ -68,8 +68,8 @@ jobs:
           fi
           echo "run_id=$run_id" >> "$GITHUB_OUTPUT"
 
-      # Compares the median of the repetitions: items_per_second where a benchmark
-      # reports it (the throughput benchmarks run for a fixed time), else real_time.
+      # Compares items_per_second where a benchmark reports it (the throughput
+      # benchmarks run for a fixed time), else real_time.
       - name: Compare with baseline
         if: steps.baseline.outputs.run_id != ''
         env:
@@ -82,11 +82,13 @@ jobs:
           warn = float(os.environ["WARN_THRESHOLD_PERCENT"]) / 100
           fail = float(os.environ["FAIL_THRESHOLD_PERCENT"]) / 100
 
-          def aggregates(path):
+          def iterations(path):
+              # One iteration run per benchmark; a baseline written with repetitions
+              # has several, so keep the first and skip the aggregates.
               result = {}
               for bench in json.loads(path.read_text())["benchmarks"]:
-                  if bench.get("run_type") == "aggregate":
-                      result.setdefault(bench["run_name"], {})[bench["aggregate_name"]] = bench
+                  if bench.get("run_type", "iteration") == "iteration":
+                      result.setdefault(bench["run_name"], bench)
               return result
 
           def fmt(value, metric, unit):
@@ -100,43 +102,37 @@ jobs:
           rows, failures = [], []
           for result in sorted(pathlib.Path("build/benchmarks/benchmark-results").glob("*.json")):
               baseline_path = pathlib.Path("baseline") / result.name
-              baseline = aggregates(baseline_path) if baseline_path.exists() else {}
-              for name, current in aggregates(result).items():
-                  median = current.get("median")
-                  if median is None:
-                      continue
-                  metric = "items_per_second" if "items_per_second" in median else "real_time"
-                  unit = median.get("time_unit", "ns")
-                  noise = current.get("cv", {}).get(metric)
-                  noise_text = f"{noise:.1%}" if noise is not None else "-"
-                  old = baseline.get(name, {}).get("median")
+              baseline = iterations(baseline_path) if baseline_path.exists() else {}
+              for name, current in iterations(result).items():
+                  metric = "items_per_second" if "items_per_second" in current else "real_time"
+                  unit = current.get("time_unit", "ns")
+                  old = baseline.get(name)
                   if old is None or metric not in old:
-                      rows.append((result.stem, name, metric, "-", fmt(median[metric], metric, unit), "-", noise_text, "new"))
+                      rows.append((result.stem, name, metric, "-", fmt(current[metric], metric, unit), "-", "new"))
                       continue
                   # Positive change = faster, negative = slower
                   if metric == "items_per_second":
-                      change = median[metric] / old[metric] - 1
+                      change = current[metric] / old[metric] - 1
                   else:
-                      change = old[metric] / median[metric] - 1
+                      change = old[metric] / current[metric] - 1
                   if change < -fail:
                       status = "❌ fail"
-                      failures.append(f"{result.stem} {name}: {metric} median {change:+.1%}")
+                      failures.append(f"{result.stem} {name}: {metric} {change:+.1%}")
                   elif change < -warn:
                       status = "⚠️ warning"
-                      print(f"::warning title=Benchmark regression::{result.stem} {name}: {metric} median {change:+.1%}")
+                      print(f"::warning title=Benchmark regression::{result.stem} {name}: {metric} {change:+.1%}")
                   else:
                       status = "✅ ok"
-                  rows.append((result.stem, name, metric, fmt(old[metric], metric, unit),
-                               fmt(median[metric], metric, unit), f"{change:+.1%}", noise_text, status))
+                  rows.append((result.stem, name, metric, fmt(old[metric], metric, old.get("time_unit", "ns")),
+                               fmt(current[metric], metric, unit), f"{change:+.1%}", status))
 
           with open(os.environ["GITHUB_STEP_SUMMARY"], "a") as summary:
               summary.write("## Benchmark comparison\n\n")
               summary.write(f"Baseline: [run {os.environ['BASELINE_RUN_ID']}]({os.environ['BASELINE_URL']}). "
-                            "Medians of the repetitions; change is positive when faster. "
-                            f"Warning below -{warn:.0%}, failure below -{fail:.0%}. "
-                            "Noise is the current run's coefficient of variation.\n\n")
-              summary.write("| Binary | Benchmark | Metric | Baseline | Current | Change | Noise | Status |\n")
-              summary.write("|---|---|---|--:|--:|--:|--:|---|\n")
+                            "Change is positive when faster. "
+                            f"Warning below -{warn:.0%}, failure below -{fail:.0%}.\n\n")
+              summary.write("| Binary | Benchmark | Metric | Baseline | Current | Change | Status |\n")
+              summary.write("|---|---|---|--:|--:|--:|---|\n")
               summary.writelines("| " + " | ".join(row) + " |\n" for row in rows)
 
           for line in failures:
