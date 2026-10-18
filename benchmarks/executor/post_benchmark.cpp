@@ -9,6 +9,8 @@
 
 #include <atomic>
 #include <chrono>
+#include <cstdlib>
+#include <iostream>
 #include <memory>
 #include <thread>
 
@@ -22,6 +24,11 @@ public:
     void SetUp(const ::benchmark::State & /*state*/) override
     {
         executor = std::make_unique<cpp_components::executor::Executor>();
+        if (const auto ec = executor->start()) {
+            // SetUp cannot skip the benchmark; nothing can run without the executor.
+            std::cerr << "Executor start failed: " << ec.message() << '\n';
+            std::abort();
+        }
     }
 
     void TearDown(const ::benchmark::State & /*state*/) override

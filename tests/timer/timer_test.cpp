@@ -31,6 +31,7 @@ TEST(TimerTest, expires_after_fires_handler)
     const auto done_future = done.get_future().share();
 
     cpp_components::executor::Executor executor {};
+    ASSERT_FALSE(executor.start());
     cpp_components::timer::Timer timer { executor };
 
     timer.expires_after(short_delay);
@@ -47,6 +48,7 @@ TEST(TimerTest, expires_at_fires_handler)
     const auto done_future = done.get_future().share();
 
     cpp_components::executor::Executor executor {};
+    ASSERT_FALSE(executor.start());
     cpp_components::timer::Timer timer { executor };
 
     const auto deadline = std::chrono::steady_clock::now() + short_delay;
@@ -61,6 +63,7 @@ TEST(TimerTest, expires_at_fires_handler)
 TEST(TimerTest, expiry_matches_expires_at)
 {
     cpp_components::executor::Executor executor {};
+    ASSERT_FALSE(executor.start());
     cpp_components::timer::Timer timer { executor };
 
     const auto deadline = std::chrono::steady_clock::now() + short_delay;
@@ -76,6 +79,7 @@ TEST(TimerTest, cancel_invokes_handler_with_operation_canceled)
     const auto done_future = done.get_future().share();
 
     cpp_components::executor::Executor executor {};
+    ASSERT_FALSE(executor.start());
     cpp_components::timer::Timer timer { executor };
 
     timer.expires_after(std::chrono::seconds { 30 });
@@ -96,6 +100,7 @@ TEST(TimerTest, expires_after_cancels_pending_wait)
     const auto second_done_future = second_done.get_future().share();
 
     cpp_components::executor::Executor executor {};
+    ASSERT_FALSE(executor.start());
     cpp_components::timer::Timer timer { executor };
 
     timer.expires_after(std::chrono::seconds { 30 });
@@ -118,6 +123,7 @@ TEST(TimerTest, async_wait_with_empty_handler_does_not_crash)
     const auto started_future = started.get_future().share();
 
     cpp_components::executor::Executor executor {};
+    ASSERT_FALSE(executor.start());
     cpp_components::timer::Timer timer { executor };
 
     timer.expires_after(short_delay);
@@ -136,6 +142,7 @@ TEST(TimerTest, destructor_cancels_pending_wait)
     const auto done_future = done.get_future().share();
 
     cpp_components::executor::Executor executor {};
+    ASSERT_FALSE(executor.start());
     {
         cpp_components::timer::Timer timer { executor };
         timer.expires_after(std::chrono::seconds { 30 });
@@ -154,6 +161,7 @@ TEST(TimerTest, handler_runs_on_executor_thread)
     const auto main_thread_id = std::this_thread::get_id();
 
     cpp_components::executor::Executor executor {};
+    ASSERT_FALSE(executor.start());
     cpp_components::timer::Timer timer { executor };
 
     timer.expires_after(short_delay);

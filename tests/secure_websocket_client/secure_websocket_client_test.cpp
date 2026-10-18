@@ -360,6 +360,7 @@ TEST(SecureWebSocketClientTest, connect_write_and_receive)
     const auto port_string = std::to_string(port);
 
     cpp_components::executor::Executor executor {};
+    ASSERT_FALSE(executor.start());
     auto client = cpp_components::secure_websocket_client::SecureWebSocketClient::create(executor);
     client->set_ca_certificate(TEST_CERT_DIR "/test-cert.pem");
 
@@ -411,6 +412,7 @@ TEST(SecureWebSocketClientTest, destroy_while_connected_cleans_up)
     const auto port_string = std::to_string(port);
 
     auto executor = std::make_unique<cpp_components::executor::Executor>();
+    ASSERT_FALSE(executor->start());
     auto client = cpp_components::secure_websocket_client::SecureWebSocketClient::create(*executor);
     client->set_ca_certificate(TEST_CERT_DIR "/test-cert.pem");
 
@@ -441,6 +443,7 @@ TEST(SecureWebSocketClientTest, disconnect_handler_called_on_read_error)
     const auto port_string = std::to_string(port);
 
     cpp_components::executor::Executor executor {};
+    ASSERT_FALSE(executor.start());
     auto client = cpp_components::secure_websocket_client::SecureWebSocketClient::create(executor);
     client->set_ca_certificate(TEST_CERT_DIR "/test-cert.pem");
 
@@ -477,6 +480,7 @@ TEST(SecureWebSocketClientTest, disconnect_handler_called_on_read_error)
 TEST(SecureWebSocketClientTest, close_during_connect_completes_without_connect_handler)
 {
     cpp_components::executor::Executor executor {};
+    ASSERT_FALSE(executor.start());
     auto client = cpp_components::secure_websocket_client::SecureWebSocketClient::create(executor);
     client->set_ca_certificate(TEST_CERT_DIR "/test-cert.pem");
 
@@ -501,6 +505,7 @@ TEST(SecureWebSocketClientTest, close_during_connect_completes_without_connect_h
 TEST(SecureWebSocketClientTest, connect_reports_dns_failure)
 {
     cpp_components::executor::Executor executor {};
+    ASSERT_FALSE(executor.start());
     auto client = cpp_components::secure_websocket_client::SecureWebSocketClient::create(executor);
 
     std::promise<std::error_code> connect_result;
@@ -519,6 +524,7 @@ TEST(SecureWebSocketClientTest, connect_reports_connection_refused)
     const auto port_string = std::to_string(closed_port());
 
     cpp_components::executor::Executor executor {};
+    ASSERT_FALSE(executor.start());
     auto client = cpp_components::secure_websocket_client::SecureWebSocketClient::create(executor);
 
     std::promise<std::error_code> connect_result;
@@ -538,6 +544,7 @@ TEST(SecureWebSocketClientTest, connect_reports_tls_handshake_failure)
     const auto port_string = std::to_string(port);
 
     cpp_components::executor::Executor executor {};
+    ASSERT_FALSE(executor.start());
     auto client = cpp_components::secure_websocket_client::SecureWebSocketClient::create(executor);
     client->set_ca_certificate(TEST_CERT_DIR "/test-cert.pem");
 
@@ -558,6 +565,7 @@ TEST(SecureWebSocketClientTest, connect_reports_websocket_handshake_failure)
     const auto port_string = std::to_string(port);
 
     cpp_components::executor::Executor executor {};
+    ASSERT_FALSE(executor.start());
     auto client = cpp_components::secure_websocket_client::SecureWebSocketClient::create(executor);
     client->set_ca_certificate(TEST_CERT_DIR "/test-cert.pem");
 
@@ -575,6 +583,7 @@ TEST(SecureWebSocketClientTest, connect_reports_websocket_handshake_failure)
 TEST(SecureWebSocketClientTest, write_before_connect_reports_not_connected)
 {
     cpp_components::executor::Executor executor {};
+    ASSERT_FALSE(executor.start());
     auto client = cpp_components::secure_websocket_client::SecureWebSocketClient::create(executor);
 
     std::promise<std::error_code> write_result;
@@ -593,6 +602,7 @@ TEST(SecureWebSocketClientTest, double_connect_reports_already_connected)
     const auto port_string = std::to_string(port);
 
     cpp_components::executor::Executor executor {};
+    ASSERT_FALSE(executor.start());
     auto client = cpp_components::secure_websocket_client::SecureWebSocketClient::create(executor);
     client->set_ca_certificate(TEST_CERT_DIR "/test-cert.pem");
 
@@ -634,6 +644,7 @@ TEST(SecureWebSocketClientTest, reconnect_after_close_reuses_client)
     const auto port_string = std::to_string(port);
 
     cpp_components::executor::Executor executor {};
+    ASSERT_FALSE(executor.start());
     auto client = cpp_components::secure_websocket_client::SecureWebSocketClient::create(executor);
     client->set_ca_certificate(TEST_CERT_DIR "/test-cert.pem");
 
@@ -690,6 +701,7 @@ TEST(SecureWebSocketClientTest, ping_interval_sends_ping_and_receives_pong)
     const auto port_string = std::to_string(port);
 
     cpp_components::executor::Executor executor {};
+    ASSERT_FALSE(executor.start());
     auto client = cpp_components::secure_websocket_client::SecureWebSocketClient::create(executor);
     client->set_ca_certificate(TEST_CERT_DIR "/test-cert.pem");
     client->set_ping_message_generator([]() { return std::string(ping_message); });
@@ -736,6 +748,7 @@ TEST(SecureWebSocketClientTest, ping_interval_sends_protocol_ping_without_genera
     const auto port_string = std::to_string(port);
 
     cpp_components::executor::Executor executor {};
+    ASSERT_FALSE(executor.start());
     auto client = cpp_components::secure_websocket_client::SecureWebSocketClient::create(executor);
     client->set_ca_certificate(TEST_CERT_DIR "/test-cert.pem");
     client->set_ping_interval(std::chrono::seconds { 1 });
@@ -771,6 +784,7 @@ TEST(SecureWebSocketClientTest, read_timeout_disconnects_when_idle)
     const auto port_string = std::to_string(port);
 
     cpp_components::executor::Executor executor {};
+    ASSERT_FALSE(executor.start());
     auto client = cpp_components::secure_websocket_client::SecureWebSocketClient::create(executor);
     client->set_ca_certificate(TEST_CERT_DIR "/test-cert.pem");
     client->set_read_timeout(std::chrono::seconds { 1 });
@@ -803,6 +817,7 @@ TEST(ReconnectingSecureWebSocketClientTest, reconnects_after_unexpected_disconne
     const auto port_string = std::to_string(port);
 
     cpp_components::executor::Executor executor {};
+    ASSERT_FALSE(executor.start());
     auto client =
         cpp_components::secure_websocket_client::ReconnectingSecureWebSocketClient::create(
             executor);
@@ -872,6 +887,7 @@ TEST(SecureWebSocketClientTest, connect_after_connection_refused_reuses_client)
     const auto good_port_string = std::to_string(good_port);
 
     cpp_components::executor::Executor executor {};
+    ASSERT_FALSE(executor.start());
     auto client = cpp_components::secure_websocket_client::SecureWebSocketClient::create(executor);
     client->set_ca_certificate(TEST_CERT_DIR "/test-cert.pem");
 
@@ -914,6 +930,7 @@ TEST(ReconnectingSecureWebSocketClientTest, reconnects_after_initial_connect_fai
     const auto port_string = std::to_string(port);
 
     cpp_components::executor::Executor executor {};
+    ASSERT_FALSE(executor.start());
     auto client =
         cpp_components::secure_websocket_client::ReconnectingSecureWebSocketClient::create(
             executor);
@@ -954,6 +971,7 @@ TEST(ReconnectingSecureWebSocketClientTest, close_stops_reconnect_attempts)
     const auto port_string = std::to_string(closed_port());
 
     cpp_components::executor::Executor executor {};
+    ASSERT_FALSE(executor.start());
     auto client =
         cpp_components::secure_websocket_client::ReconnectingSecureWebSocketClient::create(
             executor);
@@ -1009,6 +1027,7 @@ TEST(ReconnectingSecureWebSocketClientTest, prepares_new_resource_after_unexpect
     const auto port_string = std::to_string(port);
 
     cpp_components::executor::Executor executor {};
+    ASSERT_FALSE(executor.start());
     auto client =
         cpp_components::secure_websocket_client::ReconnectingSecureWebSocketClient::create(
             executor);
@@ -1081,6 +1100,7 @@ TEST(ReconnectingSecureWebSocketClientTest, ignores_late_connection_ready_after_
     const auto port_string = std::to_string(port);
 
     cpp_components::executor::Executor executor {};
+    ASSERT_FALSE(executor.start());
     auto client =
         cpp_components::secure_websocket_client::ReconnectingSecureWebSocketClient::create(
             executor);

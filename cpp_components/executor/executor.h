@@ -25,10 +25,10 @@ public:
     // handler is then called again after other ready handlers run.
     using DoorbellHandler = std::function<bool()>;
 
+    // Neither constructor starts the executor nor can fail; call start().
     // Executor without a doorbell; ring() is a no-op.
     Executor();
-    // Executor that runs doorbell_handler on its thread after ring(). If the doorbell cannot
-    // be set up, the error is logged, returned by get_doorbell_error(), and ring() is a no-op.
+    // Executor that runs doorbell_handler on its thread after ring().
     explicit Executor(DoorbellHandler doorbell_handler);
     ~Executor();
     Executor(const Executor &) = delete;
@@ -36,20 +36,21 @@ public:
     Executor &operator=(const Executor &) = delete;
     Executor &operator=(Executor &&) = delete;
 
+    // Sets up the doorbell (when there is a doorbell handler) and starts the thread.
+    // Can be called once: returns invalid_argument if already called or after stop(), and a
+    // failed start cannot be retried. Callbacks posted before start() run once it has started.
+    // Must not be called concurrently with stop().
+    std::error_code start();
     void stop(bool is_force_stop = false);
     std::error_code set_priority(int priority);
     std::error_code get_priority(int &priority);
     std::error_code set_cpu_affinity(int cpu_id);
     int get_max_priority() const;
 
-    // Error from setting up the doorbell in the constructor; empty if it is set up or the
-    // executor has no doorbell handler.
-    std::error_code get_doorbell_error() const;
-
     // Wakes the executor to run the doorbell handler; call after pushing to a queue the
     // handler drains. Thread-safe, wait-free, no allocation. Writes to an eventfd only when
     // the executor is waiting on the doorbell, so a busy executor costs no syscall.
-    // No-op without a doorbell handler.
+    // No-op without a doorbell handler or before start().
     void ring() noexcept;
 
     inline boost::asio::io_context &get_context()
@@ -77,7 +78,7 @@ public:
     }
 
 private:
-    void setup_doorbell();
+    std::error_code setup_doorbell();
     void start_doorbell_wait();
     void handle_doorbell(const boost::system::error_code &ec);
     void run_doorbell_handler();
@@ -89,13 +90,14 @@ private:
     std::unique_ptr<boost::asio::io_context::work> work;
     std::thread thread;
 
-    // Set in the constructor before the thread starts and never changed, so every thread
-    // reads them without synchronization.
+    // Set before the thread starts and never changed afterwards. Other threads read
+    // thread_handle after is_started, and doorbell_fd after doorbell_armed, both acquire.
     pthread_t thread_handle {};
     DoorbellHandler doorbell_handler;
     int doorbell_fd = -1;
-    std::error_code doorbell_error;
 
+    std::atomic<bool> is_start_called { false };
+    std::atomic<bool> is_started { false };
     std::atomic<bool> is_stopping { false };
     std::atomic<bool> doorbell_armed { false };
     uint64_t doorbell_counter = 0; // executor thread only

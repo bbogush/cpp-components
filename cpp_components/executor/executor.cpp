@@ -22,18 +22,38 @@ Executor::Executor(DoorbellHandler doorbell_handler) :
     doorbell(io_context), work(std::make_unique<boost::asio::io_context::work>(io_context)),
     doorbell_handler(std::move(doorbell_handler))
 {
-    if (this->doorbell_handler) {
-        setup_doorbell();
+}
+
+std::error_code Executor::start()
+{
+    if (is_stopping.load(std::memory_order_acquire) ||
+        is_start_called.exchange(true, std::memory_order_acq_rel)) {
+        return std::make_error_code(std::errc::invalid_argument);
     }
 
-    thread = std::thread([this]() {
-        boost::system::error_code ec;
-        io_context.run(ec);
-        if (ec) {
-            std::cerr << "Executor: " << ec.message() << '\n';
+    // Before the thread starts, so nothing races with the doorbell setup.
+    if (doorbell_handler) {
+        if (const auto ec = setup_doorbell()) {
+            return ec;
         }
-    });
+    }
+
+    // std::thread reports a failure to create the thread only by throwing; keep it here.
+    try {
+        thread = std::thread([this]() {
+            boost::system::error_code ec;
+            io_context.run(ec);
+            if (ec) {
+                std::cerr << "Executor: " << ec.message() << '\n';
+            }
+        });
+    } catch (const std::system_error &e) {
+        return e.code();
+    }
+
     thread_handle = thread.native_handle();
+    is_started.store(true, std::memory_order_release);
+    return {};
 }
 
 Executor::~Executor()
@@ -76,7 +96,8 @@ std::error_code Executor::set_priority(int priority)
         return std::make_error_code(std::errc::invalid_argument);
     }
 
-    if (is_stopping.load(std::memory_order_acquire)) {
+    if (!is_started.load(std::memory_order_acquire) ||
+        is_stopping.load(std::memory_order_acquire)) {
         return std::make_error_code(std::errc::invalid_argument);
     }
 
@@ -94,7 +115,8 @@ std::error_code Executor::set_priority(int priority)
 
 std::error_code Executor::get_priority(int &priority)
 {
-    if (is_stopping.load(std::memory_order_acquire)) {
+    if (!is_started.load(std::memory_order_acquire) ||
+        is_stopping.load(std::memory_order_acquire)) {
         return std::make_error_code(std::errc::invalid_argument);
     }
 
@@ -115,7 +137,8 @@ std::error_code Executor::set_cpu_affinity(int cpu_id)
         return std::make_error_code(std::errc::invalid_argument);
     }
 
-    if (is_stopping.load(std::memory_order_acquire)) {
+    if (!is_started.load(std::memory_order_acquire) ||
+        is_stopping.load(std::memory_order_acquire)) {
         return std::make_error_code(std::errc::invalid_argument);
     }
 
@@ -136,11 +159,6 @@ int Executor::get_max_priority() const
     return sched_get_priority_max(SCHED_RR);
 }
 
-std::error_code Executor::get_doorbell_error() const
-{
-    return doorbell_error;
-}
-
 void Executor::ring() noexcept
 {
     // Both sides use read-modify-write on doorbell_armed, so they are totally ordered:
@@ -152,23 +170,18 @@ void Executor::ring() noexcept
     }
 }
 
-void Executor::setup_doorbell()
+std::error_code Executor::setup_doorbell()
 {
-    // Runs in the constructor before the thread starts, so nothing races with it.
     const int fd = ::eventfd(0, EFD_NONBLOCK | EFD_CLOEXEC);
     if (fd < 0) {
-        doorbell_error = { errno, std::generic_category() };
-        std::cerr << "Executor doorbell: " << doorbell_error.message() << '\n';
-        return;
+        return { errno, std::generic_category() };
     }
 
     boost::system::error_code ec;
     doorbell.assign(fd, ec);
     if (ec) {
         ::close(fd);
-        doorbell_error = static_cast<std::error_code>(ec);
-        std::cerr << "Executor doorbell: " << doorbell_error.message() << '\n';
-        return;
+        return static_cast<std::error_code>(ec);
     }
 
     // The descriptor owns the eventfd from here and closes it on destruction.
@@ -177,6 +190,7 @@ void Executor::setup_doorbell()
     // completes as soon as the thread runs it.
     doorbell_armed.store(true, std::memory_order_release);
     start_doorbell_wait();
+    return {};
 }
 
 void Executor::start_doorbell_wait()

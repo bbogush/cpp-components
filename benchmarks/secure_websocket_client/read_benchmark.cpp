@@ -13,6 +13,8 @@
 #include <atomic>
 #include <chrono>
 #include <cstdint>
+#include <cstdlib>
+#include <iostream>
 #include <memory>
 #include <string>
 #include <thread>
@@ -31,6 +33,11 @@ public:
         port_string = std::to_string(port);
 
         executor = std::make_unique<cpp_components::executor::Executor>();
+        if (const auto ec = executor->start()) {
+            // SetUp cannot skip the benchmark; nothing can run without the executor.
+            std::cerr << "Executor start failed: " << ec.message() << '\n';
+            std::abort();
+        }
         client = cpp_components::secure_websocket_client::SecureWebSocketClient::create(*executor);
         client->set_ca_certificate(BENCHMARK_CERT_DIR "/test-cert.pem");
         client->set_message_handler([this](const char *, size_t) {

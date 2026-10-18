@@ -134,6 +134,7 @@ TEST(HttpsClientAsyncTest, get_returns_body_and_status)
     const auto port_string = std::to_string(port);
 
     cpp_components::executor::Executor executor {};
+    ASSERT_FALSE(executor.start());
     auto client = cpp_components::https_client_async::HttpsClientAsync::create(executor);
     client->set_ca_certificate(TEST_CERT_DIR "/test-cert.pem");
 
@@ -167,6 +168,7 @@ TEST(HttpsClientAsyncTest, post_sends_body)
     const auto port_string = std::to_string(port);
 
     cpp_components::executor::Executor executor {};
+    ASSERT_FALSE(executor.start());
     auto client = cpp_components::https_client_async::HttpsClientAsync::create(executor);
     client->set_ca_certificate(TEST_CERT_DIR "/test-cert.pem");
 
@@ -197,6 +199,7 @@ TEST(HttpsClientAsyncTest, custom_headers_are_sent)
     const auto port_string = std::to_string(port);
 
     cpp_components::executor::Executor executor {};
+    ASSERT_FALSE(executor.start());
     auto client = cpp_components::https_client_async::HttpsClientAsync::create(executor);
     client->set_ca_certificate(TEST_CERT_DIR "/test-cert.pem");
 
@@ -223,6 +226,7 @@ TEST(HttpsClientAsyncTest, response_headers_are_returned)
     const auto port_string = std::to_string(port);
 
     cpp_components::executor::Executor executor {};
+    ASSERT_FALSE(executor.start());
     auto client = cpp_components::https_client_async::HttpsClientAsync::create(executor);
     client->set_ca_certificate(TEST_CERT_DIR "/test-cert.pem");
 
@@ -258,6 +262,7 @@ TEST(HttpsClientAsyncTest, second_request_while_busy_fails)
     const auto port_string = std::to_string(port);
 
     cpp_components::executor::Executor executor {};
+    ASSERT_FALSE(executor.start());
     auto client = cpp_components::https_client_async::HttpsClientAsync::create(executor);
     client->set_ca_certificate(TEST_CERT_DIR "/test-cert.pem");
 
@@ -282,6 +287,7 @@ TEST(HttpsClientAsyncTest, second_request_while_busy_fails)
 TEST(HttpsClientAsyncTest, cancel_aborts_in_flight_request)
 {
     cpp_components::executor::Executor executor {};
+    ASSERT_FALSE(executor.start());
     auto client = cpp_components::https_client_async::HttpsClientAsync::create(executor);
     client->set_ca_certificate(TEST_CERT_DIR "/test-cert.pem");
 
@@ -301,6 +307,7 @@ TEST(HttpsClientAsyncTest, cancel_aborts_in_flight_request)
 TEST(HttpsClientAsyncTest, connect_reports_dns_failure)
 {
     cpp_components::executor::Executor executor {};
+    ASSERT_FALSE(executor.start());
     auto client = cpp_components::https_client_async::HttpsClientAsync::create(executor);
 
     std::promise<std::error_code> result;
@@ -319,6 +326,7 @@ TEST(HttpsClientAsyncTest, connect_reports_connection_refused)
     const auto port_string = std::to_string(closed_port());
 
     cpp_components::executor::Executor executor {};
+    ASSERT_FALSE(executor.start());
     auto client = cpp_components::https_client_async::HttpsClientAsync::create(executor);
 
     std::promise<std::error_code> result;
@@ -335,6 +343,7 @@ TEST(HttpsClientAsyncTest, connect_reports_connection_refused)
 TEST(HttpsClientAsyncTest, destroy_while_busy_cleans_up)
 {
     auto executor = std::make_unique<cpp_components::executor::Executor>();
+    ASSERT_FALSE(executor->start());
     auto client = cpp_components::https_client_async::HttpsClientAsync::create(*executor);
     client->set_ca_certificate(TEST_CERT_DIR "/test-cert.pem");
 
@@ -354,6 +363,7 @@ TEST(HttpsClientAsyncTest, request_timeout_allows_successful_request)
     const auto port_string = std::to_string(port);
 
     cpp_components::executor::Executor executor {};
+    ASSERT_FALSE(executor.start());
     auto client = cpp_components::https_client_async::HttpsClientAsync::create(executor);
     client->set_ca_certificate(TEST_CERT_DIR "/test-cert.pem");
 
@@ -374,6 +384,7 @@ TEST(HttpsClientAsyncTest, zero_timeout_disables_deadline)
     const auto port_string = std::to_string(port);
 
     cpp_components::executor::Executor executor {};
+    ASSERT_FALSE(executor.start());
     auto client = cpp_components::https_client_async::HttpsClientAsync::create(executor);
     client->set_ca_certificate(TEST_CERT_DIR "/test-cert.pem");
 
@@ -394,6 +405,7 @@ TEST(HttpsClientAsyncTest, empty_ca_certificate_is_ignored)
     const auto port_string = std::to_string(port);
 
     cpp_components::executor::Executor executor {};
+    ASSERT_FALSE(executor.start());
     auto client = cpp_components::https_client_async::HttpsClientAsync::create(executor);
     client->set_ca_certificate({});
     client->set_ca_certificate(TEST_CERT_DIR "/test-cert.pem");
@@ -432,6 +444,7 @@ TEST(HttpsClientAsyncTest, request_supports_remaining_http_methods)
         const auto port_string = std::to_string(port);
 
         cpp_components::executor::Executor executor {};
+        ASSERT_FALSE(executor.start());
         auto client = cpp_components::https_client_async::HttpsClientAsync::create(executor);
         client->set_ca_certificate(TEST_CERT_DIR "/test-cert.pem");
 
@@ -453,6 +466,7 @@ TEST(HttpsClientAsyncTest, ssl_handshake_failure_is_reported)
     const auto port_string = std::to_string(port);
 
     cpp_components::executor::Executor executor {};
+    ASSERT_FALSE(executor.start());
     auto client = cpp_components::https_client_async::HttpsClientAsync::create(executor);
     client->set_ca_certificate(TEST_CERT_DIR "/test-cert.pem");
 

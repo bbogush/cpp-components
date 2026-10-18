@@ -239,6 +239,7 @@ TEST(HttpsMultiplexClientTest, get_returns_body_and_status)
     const auto port_string = std::to_string(server.port);
 
     cpp_components::executor::Executor executor {};
+    ASSERT_FALSE(executor.start());
     auto client = cpp_components::https_multiplex_client::HttpsMultiplexClient::create(executor);
     client->set_ca_certificate(TEST_CERT_DIR "/test-cert.pem");
 
@@ -274,6 +275,7 @@ TEST(HttpsMultiplexClientTest, post_sends_body_and_headers)
     const auto port_string = std::to_string(server.port);
 
     cpp_components::executor::Executor executor {};
+    ASSERT_FALSE(executor.start());
     auto client = cpp_components::https_multiplex_client::HttpsMultiplexClient::create(executor);
     client->set_ca_certificate(TEST_CERT_DIR "/test-cert.pem");
 
@@ -318,6 +320,7 @@ TEST(HttpsMultiplexClientTest, concurrent_requests_complete)
     const auto port_string = std::to_string(server.port);
 
     cpp_components::executor::Executor executor {};
+    ASSERT_FALSE(executor.start());
     auto client = cpp_components::https_multiplex_client::HttpsMultiplexClient::create(executor);
     client->set_ca_certificate(TEST_CERT_DIR "/test-cert.pem");
 
@@ -349,6 +352,7 @@ TEST(HttpsMultiplexClientTest, concurrent_requests_complete)
 TEST(HttpsMultiplexClientTest, unsupported_method_fails)
 {
     cpp_components::executor::Executor executor {};
+    ASSERT_FALSE(executor.start());
     auto client = cpp_components::https_multiplex_client::HttpsMultiplexClient::create(executor);
 
     std::promise<std::error_code> result;
@@ -365,6 +369,7 @@ TEST(HttpsMultiplexClientTest, unsupported_method_fails)
 TEST(HttpsMultiplexClientTest, cancel_aborts_in_flight_request)
 {
     cpp_components::executor::Executor executor {};
+    ASSERT_FALSE(executor.start());
     auto client = cpp_components::https_multiplex_client::HttpsMultiplexClient::create(executor);
     client->set_ca_certificate(TEST_CERT_DIR "/test-cert.pem");
 
@@ -387,6 +392,7 @@ TEST(HttpsMultiplexClientTest, cancel_closes_active_sockets)
     const auto port_string = std::to_string(server.port);
 
     cpp_components::executor::Executor executor {};
+    ASSERT_FALSE(executor.start());
     auto client = cpp_components::https_multiplex_client::HttpsMultiplexClient::create(executor);
     client->set_ca_certificate(TEST_CERT_DIR "/test-cert.pem");
 
@@ -409,6 +415,7 @@ TEST(HttpsMultiplexClientTest, cancel_closes_active_sockets)
 TEST(HttpsMultiplexClientTest, dns_failure_is_reported)
 {
     cpp_components::executor::Executor executor {};
+    ASSERT_FALSE(executor.start());
     auto client = cpp_components::https_multiplex_client::HttpsMultiplexClient::create(executor);
 
     std::promise<std::error_code> result;
@@ -427,6 +434,7 @@ TEST(HttpsMultiplexClientTest, connection_refused_is_reported)
     const auto port_string = std::to_string(closed_port());
 
     cpp_components::executor::Executor executor {};
+    ASSERT_FALSE(executor.start());
     auto client = cpp_components::https_multiplex_client::HttpsMultiplexClient::create(executor);
 
     std::promise<std::error_code> result;
@@ -449,6 +457,7 @@ TEST(HttpsMultiplexClientTest, request_timeout_is_reported)
     const auto port_string = std::to_string(server.port);
 
     cpp_components::executor::Executor executor {};
+    ASSERT_FALSE(executor.start());
     auto client = cpp_components::https_multiplex_client::HttpsMultiplexClient::create(executor);
     client->set_ca_certificate(TEST_CERT_DIR "/test-cert.pem");
 
@@ -469,6 +478,7 @@ TEST(HttpsMultiplexClientTest, destroy_while_busy_cleans_up)
     const auto port_string = std::to_string(server.port);
 
     auto executor = std::make_unique<cpp_components::executor::Executor>();
+    ASSERT_FALSE(executor->start());
     auto client = cpp_components::https_multiplex_client::HttpsMultiplexClient::create(*executor);
     client->set_ca_certificate(TEST_CERT_DIR "/test-cert.pem");
 
@@ -491,6 +501,7 @@ TEST(HttpsMultiplexClientTest, empty_ca_certificate_is_ignored)
     const auto port_string = std::to_string(server.port);
 
     cpp_components::executor::Executor executor {};
+    ASSERT_FALSE(executor.start());
     auto client = cpp_components::https_multiplex_client::HttpsMultiplexClient::create(executor);
     client->set_ca_certificate({});
     client->set_ca_certificate(TEST_CERT_DIR "/test-cert.pem");
@@ -512,6 +523,7 @@ TEST(HttpsMultiplexClientTest, request_timeout_allows_successful_request)
     const auto port_string = std::to_string(server.port);
 
     cpp_components::executor::Executor executor {};
+    ASSERT_FALSE(executor.start());
     auto client = cpp_components::https_multiplex_client::HttpsMultiplexClient::create(executor);
     client->set_ca_certificate(TEST_CERT_DIR "/test-cert.pem");
 
@@ -542,6 +554,7 @@ TEST(HttpsMultiplexClientTest, remaining_http_methods_are_supported)
     // One executor and client for all cases: each io_context owns an io_uring
     // ring, and creating rings in a tight loop can make io_uring_queue_init fail.
     cpp_components::executor::Executor executor {};
+    ASSERT_FALSE(executor.start());
     auto client = cpp_components::https_multiplex_client::HttpsMultiplexClient::create(executor);
     client->set_ca_certificate(TEST_CERT_DIR "/test-cert.pem");
 
@@ -573,6 +586,7 @@ TEST(HttpsMultiplexClientTest, zero_timeout_still_allows_request)
     const auto port_string = std::to_string(server.port);
 
     cpp_components::executor::Executor executor {};
+    ASSERT_FALSE(executor.start());
     auto client = cpp_components::https_multiplex_client::HttpsMultiplexClient::create(executor);
     client->set_ca_certificate(TEST_CERT_DIR "/test-cert.pem");
 
@@ -597,6 +611,7 @@ TEST(HttpsMultiplexClientTest, post_helper_sends_body)
     const auto port_string = std::to_string(server.port);
 
     cpp_components::executor::Executor executor {};
+    ASSERT_FALSE(executor.start());
     auto client = cpp_components::https_multiplex_client::HttpsMultiplexClient::create(executor);
     client->set_ca_certificate(TEST_CERT_DIR "/test-cert.pem");
 
