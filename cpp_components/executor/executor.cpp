@@ -5,14 +5,27 @@
 
 #include "executor.h"
 
+#include <cerrno>
 #include <iostream>
 #include <pthread.h>
 #include <sched.h>
+#include <sys/eventfd.h>
+#include <unistd.h>
 
 namespace cpp_components::executor {
 
-Executor::Executor() : work(std::make_unique<boost::asio::io_context::work>(io_context))
+Executor::Executor() : Executor(DoorbellHandler {})
 {
+}
+
+Executor::Executor(DoorbellHandler doorbell_handler) :
+    doorbell(io_context), work(std::make_unique<boost::asio::io_context::work>(io_context)),
+    doorbell_handler(std::move(doorbell_handler))
+{
+    if (this->doorbell_handler) {
+        setup_doorbell();
+    }
+
     thread = std::thread([this]() {
         boost::system::error_code ec;
         io_context.run(ec);
@@ -20,6 +33,7 @@ Executor::Executor() : work(std::make_unique<boost::asio::io_context::work>(io_c
             std::cerr << "Executor: " << ec.message() << '\n';
         }
     });
+    thread_handle = thread.native_handle();
 }
 
 Executor::~Executor()
@@ -29,8 +43,20 @@ Executor::~Executor()
 
 void Executor::stop(bool is_force_stop)
 {
+    // Set first: the doorbell handler sees it and does not start another wait.
+    is_stopping.store(true, std::memory_order_release);
+
     if (!thread.joinable()) {
         return;
+    }
+
+    if (doorbell_fd >= 0) {
+        // The pending doorbell wait is outstanding work; cancel it so run() can return.
+        boost::asio::post(io_context, [this]() {
+            doorbell_armed.store(false, std::memory_order_relaxed);
+            boost::system::error_code ec;
+            doorbell.cancel(ec);
+        });
     }
 
     work.reset();
@@ -50,7 +76,7 @@ std::error_code Executor::set_priority(int priority)
         return std::make_error_code(std::errc::invalid_argument);
     }
 
-    if (!thread.joinable()) {
+    if (is_stopping.load(std::memory_order_acquire)) {
         return std::make_error_code(std::errc::invalid_argument);
     }
 
@@ -58,7 +84,7 @@ std::error_code Executor::set_priority(int priority)
     sch_params.sched_priority = priority;
 
     const int policy = (priority == 0) ? SCHED_OTHER : SCHED_RR;
-    const int ret = pthread_setschedparam(thread.native_handle(), policy, &sch_params);
+    const int ret = pthread_setschedparam(thread_handle, policy, &sch_params);
     if (ret != 0) {
         return { ret, std::generic_category() };
     }
@@ -68,13 +94,13 @@ std::error_code Executor::set_priority(int priority)
 
 std::error_code Executor::get_priority(int &priority)
 {
-    if (!thread.joinable()) {
+    if (is_stopping.load(std::memory_order_acquire)) {
         return std::make_error_code(std::errc::invalid_argument);
     }
 
     int policy = 0;
     sched_param sch_params {};
-    const int ret = pthread_getschedparam(thread.native_handle(), &policy, &sch_params);
+    const int ret = pthread_getschedparam(thread_handle, &policy, &sch_params);
     if (ret != 0) {
         return { ret, std::generic_category() };
     }
@@ -89,7 +115,7 @@ std::error_code Executor::set_cpu_affinity(int cpu_id)
         return std::make_error_code(std::errc::invalid_argument);
     }
 
-    if (!thread.joinable()) {
+    if (is_stopping.load(std::memory_order_acquire)) {
         return std::make_error_code(std::errc::invalid_argument);
     }
 
@@ -97,7 +123,7 @@ std::error_code Executor::set_cpu_affinity(int cpu_id)
     CPU_ZERO(&cpuset);
     CPU_SET(cpu_id, &cpuset);
 
-    const int ret = pthread_setaffinity_np(thread.native_handle(), sizeof(cpu_set_t), &cpuset);
+    const int ret = pthread_setaffinity_np(thread_handle, sizeof(cpu_set_t), &cpuset);
     if (ret != 0) {
         return { ret, std::generic_category() };
     }
@@ -108,6 +134,103 @@ std::error_code Executor::set_cpu_affinity(int cpu_id)
 int Executor::get_max_priority() const
 {
     return sched_get_priority_max(SCHED_RR);
+}
+
+std::error_code Executor::get_doorbell_error() const
+{
+    return doorbell_error;
+}
+
+void Executor::ring() noexcept
+{
+    // Both sides use read-modify-write on doorbell_armed, so they are totally ordered:
+    // if this exchange comes after the executor arms, it reads true and wakes the executor;
+    // if it comes before, the executor's arming exchange acquires it and the handler sees
+    // the item pushed before this call.
+    if (doorbell_armed.exchange(false, std::memory_order_acq_rel)) {
+        write_doorbell();
+    }
+}
+
+void Executor::setup_doorbell()
+{
+    // Runs in the constructor before the thread starts, so nothing races with it.
+    const int fd = ::eventfd(0, EFD_NONBLOCK | EFD_CLOEXEC);
+    if (fd < 0) {
+        doorbell_error = { errno, std::generic_category() };
+        std::cerr << "Executor doorbell: " << doorbell_error.message() << '\n';
+        return;
+    }
+
+    boost::system::error_code ec;
+    doorbell.assign(fd, ec);
+    if (ec) {
+        ::close(fd);
+        doorbell_error = static_cast<std::error_code>(ec);
+        std::cerr << "Executor doorbell: " << doorbell_error.message() << '\n';
+        return;
+    }
+
+    // The descriptor owns the eventfd from here and closes it on destruction.
+    doorbell_fd = fd;
+    // Armed from the start: a ring() before the first wait writes the eventfd, and the wait
+    // completes as soon as the thread runs it.
+    doorbell_armed.store(true, std::memory_order_release);
+    start_doorbell_wait();
+}
+
+void Executor::start_doorbell_wait()
+{
+    doorbell.async_read_some(boost::asio::buffer(&doorbell_counter, sizeof(doorbell_counter)),
+        boost::asio::bind_allocator(boost::asio::recycling_allocator<void> {},
+            [this](const boost::system::error_code &ec, std::size_t) { handle_doorbell(ec); }));
+}
+
+void Executor::handle_doorbell(const boost::system::error_code &ec)
+{
+    if (ec) {
+        if (ec != boost::asio::error::operation_aborted) {
+            std::cerr << "Executor doorbell: " << ec.message() << '\n';
+        }
+        doorbell_armed.store(false, std::memory_order_relaxed);
+        return;
+    }
+
+    // Once stopping, pending items are not handled and no new wait is started (the cancel
+    // posted by stop() may have run already).
+    if (is_stopping.load(std::memory_order_acquire)) {
+        doorbell_armed.store(false, std::memory_order_relaxed);
+        return;
+    }
+
+    run_doorbell_handler();
+    // The handler itself may have called stop().
+    if (!is_stopping.load(std::memory_order_acquire)) {
+        start_doorbell_wait();
+    }
+}
+
+void Executor::run_doorbell_handler()
+{
+    // Arm before draining, so an item pushed after the handler's last check rings again.
+    // An exchange, not a store: see ring().
+    doorbell_armed.exchange(true, std::memory_order_acq_rel);
+
+    if (doorbell_handler()) {
+        // Work remains: come back after other ready handlers instead of starving them.
+        doorbell_armed.store(false, std::memory_order_relaxed);
+        write_doorbell();
+    }
+}
+
+void Executor::write_doorbell() const noexcept
+{
+    const uint64_t one = 1;
+    // eventfd write fails only if the counter would overflow, which ring() cannot reach,
+    // so a failure is ignored. The result must still be used: write() is warn_unused_result.
+    if (::write(doorbell_fd, &one, sizeof(one)) < 0) {
+        return;
+    }
 }
 
 } // namespace cpp_components::executor

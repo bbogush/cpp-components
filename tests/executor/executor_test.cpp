@@ -9,7 +9,9 @@
 
 #include <atomic>
 #include <chrono>
+#include <cstdint>
 #include <future>
+#include <memory>
 #include <system_error>
 #include <thread>
 
@@ -225,4 +227,247 @@ TEST(ExecutorTest, set_cpu_affinity_binds_to_cpu_zero)
     ASSERT_FALSE(executor.set_cpu_affinity(0));
 
     executor.stop();
+}
+
+TEST(ExecutorTest, thread_control_rejects_executor_stopped_from_its_thread)
+{
+    std::promise<void> checked;
+    const auto checked_future = checked.get_future().share();
+
+    cpp_components::executor::Executor executor {};
+    executor.post([&executor, &checked]() {
+        executor.stop();
+        int priority = -1;
+        EXPECT_EQ(executor.set_priority(0), std::make_error_code(std::errc::invalid_argument));
+        EXPECT_EQ(executor.get_priority(priority),
+            std::make_error_code(std::errc::invalid_argument));
+        EXPECT_EQ(executor.set_cpu_affinity(0), std::make_error_code(std::errc::invalid_argument));
+        checked.set_value();
+    });
+
+    ASSERT_TRUE(wait_ready(checked_future));
+}
+
+TEST(ExecutorTest, ring_without_doorbell_handler_is_noop)
+{
+    cpp_components::executor::Executor executor {};
+    EXPECT_FALSE(executor.get_doorbell_error());
+    executor.ring();
+    executor.stop();
+}
+
+TEST(ExecutorTest, empty_doorbell_handler_means_no_doorbell)
+{
+    cpp_components::executor::Executor executor {
+        cpp_components::executor::Executor::DoorbellHandler {}
+    };
+    EXPECT_FALSE(executor.get_doorbell_error());
+    executor.ring();
+    executor.stop();
+}
+
+TEST(ExecutorTest, doorbell_handler_runs_on_executor_thread_after_ring)
+{
+    std::atomic<bool> pushed { false };
+    std::promise<std::thread::id> handler_thread_id;
+    const auto handler_thread_id_future = handler_thread_id.get_future().share();
+
+    cpp_components::executor::Executor executor { [&pushed, &handler_thread_id]() {
+        if (pushed.exchange(false)) {
+            handler_thread_id.set_value(std::this_thread::get_id());
+        }
+        return false;
+    } };
+    ASSERT_FALSE(executor.get_doorbell_error());
+
+    pushed.store(true);
+    executor.ring();
+
+    ASSERT_TRUE(wait_ready(handler_thread_id_future));
+    EXPECT_NE(handler_thread_id_future.get(), std::this_thread::get_id());
+    executor.stop();
+}
+
+TEST(ExecutorTest, doorbell_handler_is_not_called_without_ring)
+{
+    std::atomic<int> calls { 0 };
+
+    cpp_components::executor::Executor executor { [&calls]() {
+        calls.fetch_add(1);
+        return false;
+    } };
+
+    // Flush the executor queue: a spurious doorbell call would have run before this.
+    std::promise<void> flushed;
+    const auto flushed_future = flushed.get_future().share();
+    executor.post([&flushed]() { flushed.set_value(); });
+    ASSERT_TRUE(wait_ready(flushed_future));
+
+    EXPECT_EQ(calls.load(), 0);
+    executor.stop();
+}
+
+TEST(ExecutorTest, doorbell_handler_runs_again_while_work_remains)
+{
+    constexpr int batch_count = 5;
+    std::atomic<int> remaining { 0 };
+    std::promise<void> drained;
+    const auto drained_future = drained.get_future().share();
+
+    cpp_components::executor::Executor executor { [&remaining, &drained]() {
+        if (remaining.load() == 0) {
+            return false;
+        }
+        // Drain one batch per call, as a handler with a budget would.
+        if (remaining.fetch_sub(1) == 1) {
+            drained.set_value();
+            return false;
+        }
+        return true;
+    } };
+
+    remaining.store(batch_count);
+    executor.ring();
+
+    ASSERT_TRUE(wait_ready(drained_future));
+    EXPECT_EQ(remaining.load(), 0);
+    executor.stop();
+}
+
+TEST(ExecutorTest, doorbell_does_not_lose_wakeups)
+{
+    constexpr std::uint64_t item_count = 200'000;
+    std::atomic<std::uint64_t> produced { 0 };
+    std::atomic<std::uint64_t> consumed { 0 };
+
+    cpp_components::executor::Executor executor { [&produced, &consumed]() {
+        consumed.store(produced.load(std::memory_order_acquire), std::memory_order_release);
+        return false;
+    } };
+
+    std::thread producer([&executor, &produced]() {
+        for (std::uint64_t i = 0; i < item_count; ++i) {
+            produced.fetch_add(1, std::memory_order_release);
+            executor.ring();
+            if (i % 64 == 0) {
+                // Let the executor go idle so both the armed and the busy paths are hit.
+                std::this_thread::yield();
+            }
+        }
+    });
+    producer.join();
+
+    const auto deadline = std::chrono::steady_clock::now() + std::chrono::seconds { 5 };
+    while (consumed.load(std::memory_order_acquire) != item_count &&
+        std::chrono::steady_clock::now() < deadline) {
+        std::this_thread::yield();
+    }
+
+    EXPECT_EQ(consumed.load(), item_count);
+    executor.stop();
+}
+
+TEST(ExecutorTest, graceful_stop_with_doorbell_handler_does_not_hang)
+{
+    std::promise<void> stopped;
+    const auto stopped_future = stopped.get_future().share();
+
+    cpp_components::executor::Executor executor { []() { return false; } };
+
+    std::thread stopper([&executor, &stopped]() {
+        executor.stop();
+        stopped.set_value();
+    });
+
+    ASSERT_TRUE(wait_ready(stopped_future));
+    stopper.join();
+}
+
+TEST(ExecutorTest, graceful_stop_from_doorbell_handler_does_not_deadlock)
+{
+    std::atomic<bool> pushed { false };
+    // The handler needs the executor, which exists only after the handler is passed in.
+    cpp_components::executor::Executor *self = nullptr;
+    std::promise<void> stopped;
+    const auto stopped_future = stopped.get_future().share();
+
+    cpp_components::executor::Executor executor { [&self, &pushed, &stopped]() {
+        if (pushed.exchange(false)) {
+            self->stop();
+            stopped.set_value();
+        }
+        return false;
+    } };
+    self = &executor;
+
+    pushed.store(true);
+    executor.ring();
+
+    ASSERT_TRUE(wait_ready(stopped_future));
+}
+
+TEST(ExecutorTest, destroying_executor_with_doorbell_handler_does_not_hang)
+{
+    std::promise<void> destroyed;
+    const auto destroyed_future = destroyed.get_future().share();
+
+    std::thread owner([&destroyed]() {
+        {
+            cpp_components::executor::Executor executor { []() { return false; } };
+            executor.ring();
+        }
+        destroyed.set_value();
+    });
+
+    ASSERT_TRUE(wait_ready(destroyed_future));
+    owner.join();
+}
+
+TEST(ExecutorTest, doorbell_handler_is_not_called_after_stop)
+{
+    std::atomic<int> calls { 0 };
+    std::promise<void> rung;
+    const auto rung_future = rung.get_future().share();
+
+    cpp_components::executor::Executor executor { [&calls]() {
+        calls.fetch_add(1);
+        return false;
+    } };
+
+    // stop() then ring() on the executor thread: the doorbell completes while stopping.
+    executor.post([&executor, &rung]() {
+        executor.stop();
+        executor.ring();
+        rung.set_value();
+    });
+
+    ASSERT_TRUE(wait_ready(rung_future));
+    executor.stop(); // joins: every pending handler has run or been dropped
+    EXPECT_EQ(calls.load(), 0);
+}
+
+TEST(ExecutorTest, doorbell_handler_with_remaining_work_is_not_called_after_stop)
+{
+    std::atomic<int> calls { 0 };
+    cpp_components::executor::Executor *self = nullptr;
+
+    cpp_components::executor::Executor executor { [&self, &calls]() {
+        // Stops on the first call but reports remaining work, which would call it again.
+        if (calls.fetch_add(1) == 0) {
+            self->stop();
+        }
+        return true;
+    } };
+    self = &executor;
+
+    executor.ring();
+
+    const auto deadline = std::chrono::steady_clock::now() + wait_timeout;
+    while (calls.load() == 0 && std::chrono::steady_clock::now() < deadline) {
+        std::this_thread::yield();
+    }
+    ASSERT_EQ(calls.load(), 1);
+
+    executor.stop();
+    EXPECT_EQ(calls.load(), 1);
 }
