@@ -20,7 +20,7 @@ add_subdirectory(secure_websocket_client)
 set(BENCHMARK_RESULTS_DIR "${CMAKE_BINARY_DIR}/benchmark-results")
 
 set(_benchmark_run_commands)
-foreach(exe IN LISTS PROJECT_BENCHMARK_EXECUTABLES)
+foreach(exe IN LISTS CPP_COMPONENTS_BENCHMARK_EXECUTABLES)
   list(APPEND _benchmark_run_commands COMMAND "$<TARGET_FILE:${exe}>"
     "--benchmark_out=${BENCHMARK_RESULTS_DIR}/${exe}.json"
     --benchmark_out_format=json)
