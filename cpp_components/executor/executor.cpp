@@ -19,7 +19,9 @@ Executor::Executor() : Executor(DoorbellHandler {})
 }
 
 Executor::Executor(DoorbellHandler doorbell_handler) :
-    doorbell(io_context), work(std::make_unique<boost::asio::io_context::work>(io_context)),
+    // CONCURRENCY_HINT_1 - avoid redundant locking if only one thread runs the io_context
+    io_context(BOOST_ASIO_CONCURRENCY_HINT_1), doorbell(io_context),
+    work(std::make_unique<boost::asio::io_context::work>(io_context)),
     doorbell_handler(std::move(doorbell_handler))
 {
 }
