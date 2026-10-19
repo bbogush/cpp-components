@@ -392,7 +392,7 @@ std::error_code SecureWebSocketClient::queue_write(WriteType type, std::span<con
         return std::make_error_code(std::errc::no_buffer_space);
     }
 
-    auto &slot = write_slots.back();
+    auto &slot = write_slots.back_slot();
     slot.type = type;
     std::copy(message.begin(), message.end(), slot.data.begin());
     slot.size = message.size();

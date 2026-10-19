@@ -17,7 +17,7 @@ namespace cpp_components::ring_buffer {
 // Fixed-capacity FIFO queue that never allocates, moves, or copies its elements.
 //
 // All capacity elements are default-constructed once, together with the RingBuffer, and are
-// reused: a push fills the next free element in place (back(), then push_back()), and a
+// reused: a push fills the next free element in place (back_slot(), then push_back()), and a
 // pop only releases it. Elements are not destroyed or reset on pop, so the caller resets what
 // must not outlive the entry (for example a callback). Elements do not move while queued, so a
 // reference to a queued element stays valid until it is popped, even while others are pushed.
@@ -49,13 +49,13 @@ public:
     }
 
     // Next free element, to fill in place before push_back(). Requires !full().
-    T &back() noexcept
+    T &back_slot() noexcept
     {
         assert(!full());
         return elements[index(tail)];
     }
 
-    // Queues the element filled through back(). Requires !full().
+    // Queues the element filled through back_slot(). Requires !full().
     void push_back() noexcept
     {
         assert(!full());

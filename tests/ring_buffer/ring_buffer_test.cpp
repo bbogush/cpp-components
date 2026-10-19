@@ -44,7 +44,7 @@ struct Counted {
 
 void push(RingBuffer<int, 4> &ring, int value)
 {
-    ring.back() = value;
+    ring.back_slot() = value;
     ring.push_back();
 }
 
@@ -62,7 +62,7 @@ TEST(RingBufferTest, new_ring_is_empty)
 TEST(RingBufferTest, push_back_queues_element_filled_in_place)
 {
     RingBuffer<std::string, 4> ring;
-    ring.back() = "first";
+    ring.back_slot() = "first";
     ring.push_back();
 
     EXPECT_FALSE(ring.empty());
@@ -142,11 +142,11 @@ TEST(RingBufferTest, pop_front_does_not_reset_element)
 {
     // Capacity 1: the next push reuses the element just popped.
     RingBuffer<std::string, 1> ring;
-    ring.back() = "kept";
+    ring.back_slot() = "kept";
     ring.push_back();
     ring.pop_front();
 
-    EXPECT_EQ(ring.back(), "kept");
+    EXPECT_EQ(ring.back_slot(), "kept");
 }
 
 TEST(RingBufferTest, push_and_pop_do_not_construct_elements)
@@ -156,7 +156,7 @@ TEST(RingBufferTest, push_and_pop_do_not_construct_elements)
     EXPECT_EQ(Counted::constructions, 8);
 
     for (int i = 0; i < 100; ++i) {
-        ring.back().value = i;
+        ring.back_slot().value = i;
         ring.push_back();
         EXPECT_EQ(ring.front().value, i);
         ring.pop_front();
