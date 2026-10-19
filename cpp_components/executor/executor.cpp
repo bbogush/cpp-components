@@ -6,6 +6,8 @@
 #include "executor.h"
 
 #include <cerrno>
+#include <cstdlib>
+#include <exception>
 #include <iostream>
 #include <pthread.h>
 #include <sched.h>
@@ -42,13 +44,7 @@ std::error_code Executor::start()
 
     // std::thread reports a failure to create the thread only by throwing; keep it here.
     try {
-        thread = std::thread([this]() {
-            boost::system::error_code ec;
-            io_context.run(ec);
-            if (ec) {
-                std::cerr << "Executor: " << ec.message() << '\n';
-            }
-        });
+        thread = std::thread([this]() { run(); });
     } catch (const std::system_error &e) {
         return e.code();
     }
@@ -56,6 +52,26 @@ std::error_code Executor::start()
     thread_handle = thread.native_handle();
     is_started.store(true, std::memory_order_release);
     return {};
+}
+
+void Executor::run() noexcept
+{
+    // Components do not throw, but a callback might. An exception escaping a handler would
+    // leave its operation half done, so log it and terminate on purpose instead of letting
+    // it reach std::terminate without a message.
+    try {
+        boost::system::error_code ec;
+        io_context.run(ec);
+        if (ec) {
+            std::cerr << "Executor: " << ec.message() << '\n';
+        }
+    } catch (const std::exception &e) {
+        std::cerr << "Executor: unhandled exception in a callback: " << e.what() << '\n';
+        std::abort();
+    } catch (...) {
+        std::cerr << "Executor: unhandled unknown exception in a callback\n";
+        std::abort();
+    }
 }
 
 Executor::~Executor()

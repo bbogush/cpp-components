@@ -78,6 +78,7 @@ public:
     }
 
 private:
+    void run() noexcept;
     std::error_code setup_doorbell();
     void start_doorbell_wait();
     void handle_doorbell(const boost::system::error_code &ec);

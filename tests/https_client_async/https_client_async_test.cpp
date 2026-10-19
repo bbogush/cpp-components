@@ -480,3 +480,15 @@ TEST(HttpsClientAsyncTest, ssl_handshake_failure_is_reported)
     EXPECT_FALSE(client->is_busy());
     executor.stop();
 }
+
+TEST(HttpsClientAsyncTest, set_ca_certificate_reports_missing_file)
+{
+    cpp_components::executor::Executor executor {};
+    ASSERT_FALSE(executor.start());
+    auto client = cpp_components::https_client_async::HttpsClientAsync::create(executor);
+
+    EXPECT_TRUE(client->set_ca_certificate("/nonexistent/ca-cert.pem"));
+    EXPECT_FALSE(client->set_ca_certificate(""));
+    EXPECT_FALSE(client->set_ca_certificate(TEST_CERT_DIR "/test-cert.pem"));
+    executor.stop();
+}

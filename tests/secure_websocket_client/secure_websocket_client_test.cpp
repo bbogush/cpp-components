@@ -1407,3 +1407,15 @@ TEST(ReconnectingSecureWebSocketClientTest, ignores_late_connection_ready_after_
     EXPECT_FALSE(client->is_connected());
     executor.stop();
 }
+
+TEST(SecureWebSocketClientTest, set_ca_certificate_reports_missing_file)
+{
+    cpp_components::executor::Executor executor {};
+    ASSERT_FALSE(executor.start());
+    auto client = cpp_components::secure_websocket_client::SecureWebSocketClient::create(executor);
+
+    EXPECT_TRUE(client->set_ca_certificate("/nonexistent/ca-cert.pem"));
+    EXPECT_FALSE(client->set_ca_certificate(""));
+    EXPECT_FALSE(client->set_ca_certificate(TEST_CERT_DIR "/test-cert.pem"));
+    executor.stop();
+}

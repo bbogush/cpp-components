@@ -11,6 +11,7 @@
 #include <openssl/err.h>
 #include <openssl/ssl.h>
 
+#include <iostream>
 #include <utility>
 
 namespace cpp_components::https_client_async {
@@ -32,8 +33,15 @@ std::shared_ptr<HttpsClientAsync> HttpsClientAsync::create(executor::Executor &e
 HttpsClientAsync::HttpsClientAsync(executor::Executor &executor) :
     executor(executor), ssl_context(ssl::context::tlsv12_client), resolver(executor.get_context())
 {
-    ssl_context.set_default_verify_paths();
-    ssl_context.set_verify_mode(ssl::verify_peer);
+    boost::system::error_code ec;
+    ssl_context.set_default_verify_paths(ec);
+    if (ec) {
+        std::cerr << "HttpsClientAsync: failed to load default CA paths: " << ec.message() << '\n';
+    }
+    ssl_context.set_verify_mode(ssl::verify_peer, ec);
+    if (ec) {
+        std::cerr << "HttpsClientAsync: failed to set verify mode: " << ec.message() << '\n';
+    }
 }
 
 HttpsClientAsync::~HttpsClientAsync()
@@ -41,13 +49,15 @@ HttpsClientAsync::~HttpsClientAsync()
     do_cancel();
 }
 
-void HttpsClientAsync::set_ca_certificate(const std::string &ca_certificate_file)
+std::error_code HttpsClientAsync::set_ca_certificate(const std::string &ca_certificate_file)
 {
     if (ca_certificate_file.empty()) {
-        return;
+        return {};
     }
 
-    ssl_context.load_verify_file(ca_certificate_file);
+    boost::system::error_code ec;
+    ssl_context.load_verify_file(ca_certificate_file, ec);
+    return static_cast<std::error_code>(ec);
 }
 
 void HttpsClientAsync::get(std::string host, std::string port, std::string target,
@@ -187,7 +197,12 @@ void HttpsClientAsync::handle_connect(std::uint64_t generation, const boost::sys
         return;
     }
 
-    stream->set_verify_callback(ssl::host_name_verification(host));
+    boost::system::error_code verify_ec;
+    stream->set_verify_callback(ssl::host_name_verification(host), verify_ec);
+    if (verify_ec) {
+        fail_request(verify_ec);
+        return;
+    }
 
     auto self = shared_from_this();
     auto ssl_handshake_handler = [self, generation](const boost::system::error_code &ssl_ec) {

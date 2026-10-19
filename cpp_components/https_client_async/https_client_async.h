@@ -58,7 +58,7 @@ public:
 
     ~HttpsClientAsync();
 
-    void set_ca_certificate(const std::string &ca_certificate_file);
+    std::error_code set_ca_certificate(const std::string &ca_certificate_file);
 
     void get(std::string host, std::string port, std::string target,
         std::chrono::milliseconds timeout, ResponseHandler handler);

@@ -62,7 +62,7 @@ public:
 
     bool is_connected() const;
 
-    void set_ca_certificate(const std::string &ca_certificate_file);
+    std::error_code set_ca_certificate(const std::string &ca_certificate_file);
 
     static size_t get_read_buffer_size();
     static size_t get_write_slot_size();

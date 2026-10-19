@@ -12,6 +12,7 @@
 #include <cstdint>
 #include <future>
 #include <memory>
+#include <stdexcept>
 #include <system_error>
 #include <thread>
 
@@ -561,4 +562,20 @@ TEST(ExecutorTest, ring_before_start_is_noop)
 
     EXPECT_EQ(calls.load(), 0);
     executor.stop();
+}
+
+TEST(ExecutorDeathTest, exception_escaping_callback_is_logged_and_aborts)
+{
+    // The executor runs its own thread, so re-execute the test binary in the death test child.
+    GTEST_FLAG_SET(death_test_style, "threadsafe");
+    EXPECT_DEATH(
+        {
+            cpp_components::executor::Executor executor {};
+            if (executor.start()) {
+                return;
+            }
+            executor.post([]() { throw std::runtime_error("boom"); });
+            executor.stop();
+        },
+        "Executor: unhandled exception in a callback: boom");
 }

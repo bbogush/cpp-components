@@ -42,8 +42,16 @@ SecureWebSocketClient::SecureWebSocketClient(executor::Executor &executor) :
     executor(executor), ssl_context(ssl::context::tlsv12_client), resolver(executor.get_context()),
     ping_timer(executor), read_timer(executor)
 {
-    ssl_context.set_default_verify_paths();
-    ssl_context.set_verify_mode(ssl::verify_peer);
+    boost::system::error_code ec;
+    ssl_context.set_default_verify_paths(ec);
+    if (ec) {
+        std::cerr << "SecureWebSocketClient: failed to load default CA paths: " << ec.message()
+                  << '\n';
+    }
+    ssl_context.set_verify_mode(ssl::verify_peer, ec);
+    if (ec) {
+        std::cerr << "SecureWebSocketClient: failed to set verify mode: " << ec.message() << '\n';
+    }
 }
 
 SecureWebSocketClient::~SecureWebSocketClient()
@@ -147,13 +155,15 @@ bool SecureWebSocketClient::is_connected() const
     return state.load(std::memory_order_acquire) == ConnectionState::connected;
 }
 
-void SecureWebSocketClient::set_ca_certificate(const std::string &ca_certificate_file)
+std::error_code SecureWebSocketClient::set_ca_certificate(const std::string &ca_certificate_file)
 {
     if (ca_certificate_file.empty()) {
-        return;
+        return {};
     }
 
-    ssl_context.load_verify_file(ca_certificate_file);
+    boost::system::error_code ec;
+    ssl_context.load_verify_file(ca_certificate_file, ec);
+    return static_cast<std::error_code>(ec);
 }
 
 size_t SecureWebSocketClient::get_read_buffer_size()
@@ -236,7 +246,12 @@ void SecureWebSocketClient::handle_connect(ConnectHandler handler,
     }
 
     // Optimize write for low latency
-    beast::get_lowest_layer(*ws).socket().set_option(Tcp::no_delay(true));
+    boost::system::error_code option_ec;
+    beast::get_lowest_layer(*ws).socket().set_option(Tcp::no_delay(true), option_ec);
+    if (option_ec) {
+        fail_connection(option_ec, handler);
+        return;
+    }
     beast::get_lowest_layer(*ws).expires_after(connect_timeout);
 
     if (!SSL_set_tlsext_host_name(ws->next_layer().native_handle(), host.c_str())) {
@@ -246,7 +261,12 @@ void SecureWebSocketClient::handle_connect(ConnectHandler handler,
         return;
     }
 
-    ws->next_layer().set_verify_callback(ssl::host_name_verification(host));
+    boost::system::error_code verify_ec;
+    ws->next_layer().set_verify_callback(ssl::host_name_verification(host), verify_ec);
+    if (verify_ec) {
+        fail_connection(verify_ec, handler);
+        return;
+    }
 
     auto self = shared_from_this();
     auto ssl_handshake_handler = [self, handler = std::move(handler)](
