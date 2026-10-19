@@ -131,6 +131,7 @@ void SecureWebSocketClient::set_read_timeout(std::chrono::seconds timeout)
             return;
         }
 
+        self->last_read_time = std::chrono::steady_clock::now();
         self->stop_read_timer();
         self->start_read_timer();
     };
@@ -270,6 +271,8 @@ void SecureWebSocketClient::handle_websocket_handshake(const ConnectHandler &han
     if (handler) {
         handler({});
     }
+    last_read_time = std::chrono::steady_clock::now();
+    start_read_timer();
     start_read();
     start_ping_timer();
 }
@@ -279,8 +282,6 @@ void SecureWebSocketClient::start_read()
     if (!ws || !is_connected()) {
         return;
     }
-
-    start_read_timer();
 
     auto self = shared_from_this();
     auto read_handler = [self](const boost::system::error_code &ec, std::size_t bytes_transferred) {
@@ -301,6 +302,7 @@ void SecureWebSocketClient::handle_read(const boost::system::error_code &ec, std
         return;
     }
 
+    last_read_time = std::chrono::steady_clock::now();
     if (message_handler) {
         const auto buffer = read_buffer.cdata();
         message_handler(static_cast<const char *>(buffer.data()), buffer.size());
@@ -555,7 +557,9 @@ void SecureWebSocketClient::start_read_timer()
         return;
     }
 
-    read_timer.expires_after(read_timeout);
+    // Armed once per timeout period, not per message: it fires when the timeout would expire
+    // if no message arrived after last_read_time, and handle_read_timeout() re-arms it if one did.
+    read_timer.expires_at(last_read_time + read_timeout);
     auto self = shared_from_this();
     read_timer.async_wait([self](const std::error_code &ec) { self->handle_read_timeout(ec); });
 }
@@ -568,6 +572,12 @@ void SecureWebSocketClient::stop_read_timer()
 void SecureWebSocketClient::handle_read_timeout(const std::error_code &ec)
 {
     if (ec || !is_connected() || read_timeout <= std::chrono::seconds::zero()) {
+        return;
+    }
+
+    if (std::chrono::steady_clock::now() < last_read_time + read_timeout) {
+        // A message arrived since the timer was armed: wait for the rest of the timeout.
+        start_read_timer();
         return;
     }
 

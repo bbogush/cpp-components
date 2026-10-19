@@ -147,6 +147,7 @@ private:
     PingMessageGenerator ping_message_generator;
     std::chrono::seconds ping_interval { 0 };
     std::chrono::seconds read_timeout { 0 };
+    std::chrono::steady_clock::time_point last_read_time;
 };
 
 } // namespace cpp_components::secure_websocket_client

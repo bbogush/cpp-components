@@ -811,6 +811,54 @@ TEST(SecureWebSocketClientTest, read_timeout_disconnects_when_idle)
     executor.stop();
 }
 
+TEST(SecureWebSocketClientTest, read_timeout_does_not_disconnect_while_messages_arrive)
+{
+    const auto port = start_secure_echo_server();
+    const auto port_string = std::to_string(port);
+
+    cpp_components::executor::Executor executor {};
+    ASSERT_FALSE(executor.start());
+    auto client = cpp_components::secure_websocket_client::SecureWebSocketClient::create(executor);
+    client->set_ca_certificate(TEST_CERT_DIR "/test-cert.pem");
+    client->set_read_timeout(std::chrono::seconds { 1 });
+
+    std::promise<void> connected;
+    const auto connected_future = connected.get_future().share();
+    client->connect("localhost", port_string, "/", [&connected](const std::error_code &ec) {
+        if (!ec) {
+            connected.set_value();
+        }
+    });
+    ASSERT_TRUE(wait_ready(connected_future));
+
+    std::atomic<int> received { 0 };
+    client->set_message_handler([&received](const char *, size_t) { received.fetch_add(1); });
+
+    std::promise<std::error_code> disconnected;
+    const auto disconnected_future = disconnected.get_future().share();
+    std::atomic<bool> is_writing { true };
+    client->set_disconnect_handler([&disconnected, &is_writing](const std::error_code &ec) {
+        // Only a disconnect after the writes stop is expected.
+        EXPECT_FALSE(is_writing.load());
+        disconnected.set_value(ec);
+    });
+
+    // Echoes arrive every 300 ms for 2.5 timeout periods: the connection must stay open.
+    const auto writes_end = std::chrono::steady_clock::now() + std::chrono::milliseconds { 2500 };
+    while (std::chrono::steady_clock::now() < writes_end) {
+        client->write("keepalive", nullptr);
+        std::this_thread::sleep_for(std::chrono::milliseconds { 300 });
+    }
+    is_writing.store(false);
+    EXPECT_TRUE(client->is_connected());
+    EXPECT_GT(received.load(), 0);
+
+    // Once messages stop, the timeout still fires.
+    ASSERT_EQ(disconnected_future.wait_for(std::chrono::seconds { 3 }), std::future_status::ready);
+    EXPECT_EQ(disconnected_future.get(), std::make_error_code(std::errc::timed_out));
+    executor.stop();
+}
+
 TEST(ReconnectingSecureWebSocketClientTest, reconnects_after_unexpected_disconnect)
 {
     const auto port = start_secure_echo_server(true, 2);
