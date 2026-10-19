@@ -65,6 +65,8 @@ public:
     std::error_code set_ca_certificate(const std::string &ca_certificate_file);
 
     static size_t get_read_buffer_size();
+    // Free bytes guaranteed after each received message.
+    static size_t get_read_padding();
     static size_t get_write_slot_size();
     static size_t get_write_slot_count();
 
@@ -107,6 +109,7 @@ private:
     };
 
     inline static constexpr size_t read_buffer_size = 64 * 1024; // 64KB
+    inline static constexpr size_t read_padding = 64;
     inline static constexpr size_t write_slot_count = 64; // 64 * 16KB = 1MB
 
     void handle_resolve(ConnectHandler handler, const boost::system::error_code &ec,
@@ -151,7 +154,7 @@ private:
     std::unique_ptr<WebSocketStream> ws;
     timer::Timer ping_timer;
     timer::Timer read_timer;
-    boost::beast::flat_static_buffer<read_buffer_size> read_buffer;
+    boost::beast::flat_static_buffer<read_buffer_size + read_padding> read_buffer;
     ring_buffer::RingBuffer<WriteSlot, write_slot_count> write_slots;
     uint64_t write_generation = 0;
     bool write_in_progress = false;

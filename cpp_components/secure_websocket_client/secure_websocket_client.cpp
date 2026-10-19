@@ -171,6 +171,11 @@ size_t SecureWebSocketClient::get_read_buffer_size()
     return read_buffer_size;
 }
 
+size_t SecureWebSocketClient::get_read_padding()
+{
+    return read_padding;
+}
+
 size_t SecureWebSocketClient::get_write_slot_size()
 {
     return std::tuple_size_v<decltype(WriteSlot::data)>;
@@ -500,6 +505,8 @@ void SecureWebSocketClient::create_stream()
 {
     read_buffer.consume(read_buffer.size());
     ws = std::make_unique<WebSocketStream>(executor.get_context(), ssl_context);
+    // Keeps read_padding bytes of the buffer free after every message.
+    ws->read_message_max(read_buffer_size);
 }
 
 void SecureWebSocketClient::cancel_pending_operations()

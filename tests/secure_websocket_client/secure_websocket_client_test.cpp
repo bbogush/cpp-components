@@ -42,6 +42,8 @@ bool wait_ready(const std::shared_future<T> &future)
     return future.wait_for(wait_timeout) == std::future_status::ready;
 }
 
+constexpr std::string_view echo_repeat_prefix = "repeat:";
+
 void run_secure_echo_session(boost::asio::ip::tcp::socket socket, bool close_after_first_message,
     const std::function<void(std::string)> &on_target = nullptr)
 {
@@ -87,7 +89,15 @@ void run_secure_echo_session(boost::asio::ip::tcp::socket socket, bool close_aft
             break;
         }
 
-        ws.write(buffer.data(), ec);
+        // "repeat:N" asks for a reply of N bytes, to test messages larger than the client
+        // can write.
+        const auto text = beast::buffers_to_string(buffer.data());
+        if (text.starts_with(echo_repeat_prefix)) {
+            const std::string reply(std::stoul(text.substr(echo_repeat_prefix.size())), 'x');
+            ws.write(boost::asio::buffer(reply), ec);
+        } else {
+            ws.write(buffer.data(), ec);
+        }
         if (ec) {
             break;
         }
@@ -1417,5 +1427,61 @@ TEST(SecureWebSocketClientTest, set_ca_certificate_reports_missing_file)
     EXPECT_TRUE(client->set_ca_certificate("/nonexistent/ca-cert.pem"));
     EXPECT_FALSE(client->set_ca_certificate(""));
     EXPECT_FALSE(client->set_ca_certificate(TEST_CERT_DIR "/test-cert.pem"));
+    executor.stop();
+}
+
+TEST(SecureWebSocketClientTest, largest_message_is_followed_by_read_padding)
+{
+    cpp_components::executor::Executor executor {};
+    ASSERT_FALSE(executor.start());
+    auto client = connect_to_echo_server(executor);
+    ASSERT_TRUE(client);
+
+    std::promise<std::string> received;
+    auto received_future = received.get_future();
+    client->set_message_handler([&received](const char *data, size_t size) {
+        // Touch the last padding byte, as a parser reading past the end would. The read buffer
+        // is a member of the client, so a missing padding would read the next member rather
+        // than fault; the guarantee itself comes from the buffer layout.
+        volatile char last_padding_byte =
+            data[size + SecureWebSocketClient::get_read_padding() - 1];
+        static_cast<void>(last_padding_byte);
+        received.set_value(std::string(data, size));
+    });
+
+    const std::string largest(SecureWebSocketClient::get_read_buffer_size(), 'x');
+    client->write("repeat:" + std::to_string(largest.size()), nullptr);
+
+    ASSERT_EQ(received_future.wait_for(wait_timeout), std::future_status::ready);
+    EXPECT_EQ(received_future.get(), largest);
+
+    client->close();
+    executor.stop();
+}
+
+TEST(SecureWebSocketClientTest, message_larger_than_read_buffer_disconnects)
+{
+    cpp_components::executor::Executor executor {};
+    ASSERT_FALSE(executor.start());
+    auto client = connect_to_echo_server(executor);
+    ASSERT_TRUE(client);
+
+    std::atomic<bool> received { false };
+    client->set_message_handler([&received](const char *, size_t) { received = true; });
+    std::promise<std::error_code> disconnected;
+    const auto disconnected_future = disconnected.get_future().share();
+    client->set_disconnect_handler(
+        [&disconnected](const std::error_code &ec) { disconnected.set_value(ec); });
+
+    // The echo is one byte larger than the largest message the client accepts.
+    client->write("repeat:" + std::to_string(SecureWebSocketClient::get_read_buffer_size() + 1),
+        nullptr);
+
+    // Beast rejects the message and starts closing; the error reported depends on how the
+    // close ends (e.g. a TLS error while the server is still sending), so only check that the
+    // connection failed without delivering the message.
+    ASSERT_TRUE(wait_ready(disconnected_future));
+    EXPECT_TRUE(disconnected_future.get());
+    EXPECT_FALSE(received.load());
     executor.stop();
 }
