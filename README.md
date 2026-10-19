@@ -1,6 +1,6 @@
 # cpp-components
 
-Reusable C++20 components (async executor, timers, HTTPS and WebSocket clients) packaged as a static library for consumption via CMake FetchContent.
+Reusable C++20 components packaged as a static library for consumption via CMake FetchContent.
 
 **Stack:** C++20, CMake 3.20+, Ubuntu 24.04 (GCC, clang-tidy, CMake, Git)
 

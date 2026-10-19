@@ -13,7 +13,9 @@
 #include <openssl/err.h>
 #include <openssl/ssl.h>
 
+#include <algorithm>
 #include <chrono>
+#include <iostream>
 #include <utility>
 
 namespace cpp_components::secure_websocket_client {
@@ -26,6 +28,8 @@ namespace net = boost::asio;
 namespace ssl = net::ssl;
 
 constexpr auto connect_timeout = std::chrono::seconds(30);
+// Delay before retrying a ping that could not be queued because all write slots were in use.
+constexpr auto ping_retry_delay = std::chrono::milliseconds(100);
 
 } // namespace
 
@@ -155,6 +159,26 @@ void SecureWebSocketClient::set_ca_certificate(const std::string &ca_certificate
 size_t SecureWebSocketClient::get_read_buffer_size()
 {
     return read_buffer_size;
+}
+
+size_t SecureWebSocketClient::get_write_slot_size()
+{
+    return std::tuple_size_v<decltype(WriteSlot::data)>;
+}
+
+size_t SecureWebSocketClient::get_write_slot_count()
+{
+    return write_slot_count;
+}
+
+std::error_code SecureWebSocketClient::write_now(std::span<const char> message)
+{
+    if (!executor.get_context().get_executor().running_in_this_thread()) {
+        return std::make_error_code(std::errc::operation_not_permitted);
+    }
+
+    WriteHandler no_handler;
+    return queue_write(WriteType::message, message, no_handler);
 }
 
 void SecureWebSocketClient::do_connect(ConnectHandler handler)
@@ -311,67 +335,86 @@ void SecureWebSocketClient::handle_read(const boost::system::error_code &ec, std
     start_read();
 }
 
-void SecureWebSocketClient::do_write(std::string message, WriteHandler handler)
+std::error_code SecureWebSocketClient::do_write(std::string message, WriteHandler handler)
 {
-    if (state.load(std::memory_order_acquire) != ConnectionState::connected || !ws) {
-        if (handler) {
-            handler(std::make_error_code(std::errc::not_connected));
-        }
-        return;
+    const auto ec = queue_write(WriteType::message, message, handler);
+    if (ec && handler) {
+        handler(ec);
     }
-
-    write_queue.push_back(
-        WriteRequest { WriteType::message, std::move(message), std::move(handler) });
-    if (!write_in_progress) {
-        start_write();
-    }
+    return ec;
 }
 
-void SecureWebSocketClient::do_protocol_ping()
+std::error_code SecureWebSocketClient::do_protocol_ping()
+{
+    WriteHandler no_handler;
+    const auto ec = queue_write(WriteType::ping, {}, no_handler);
+
+    return ec;
+}
+
+std::error_code SecureWebSocketClient::queue_write(WriteType type, std::span<const char> message,
+    WriteHandler &handler)
 {
     if (state.load(std::memory_order_acquire) != ConnectionState::connected || !ws) {
-        return;
+        return std::make_error_code(std::errc::not_connected);
     }
 
-    write_queue.push_back(WriteRequest { WriteType::ping, {}, nullptr });
-    if (!write_in_progress) {
-        start_write();
+    if (message.size() > get_write_slot_size()) {
+        return std::make_error_code(std::errc::message_size);
     }
+
+    if (write_slots.full()) {
+        return std::make_error_code(std::errc::no_buffer_space);
+    }
+
+    auto &slot = write_slots.back();
+    slot.type = type;
+    std::copy(message.begin(), message.end(), slot.data.begin());
+    slot.size = message.size();
+    slot.handler = std::move(handler);
+    write_slots.push_back();
+
+    start_write();
+    return {};
 }
 
 void SecureWebSocketClient::start_write()
 {
-    if (write_in_progress || write_queue.empty() || !ws) {
+    if (write_in_progress || write_slots.empty() || !ws) {
         return;
     }
 
     write_in_progress = true;
     auto self = shared_from_this();
-    const auto &item = write_queue.front();
+    const auto &slot = write_slots.front();
 
-    if (item.type == WriteType::ping) {
-        auto ping_handler = [self](const boost::system::error_code &ec) {
-            self->handle_protocol_ping(ec);
+    if (slot.type == WriteType::ping) {
+        auto ping_handler = [self, generation = write_generation](
+                                const boost::system::error_code &ec) {
+            self->handle_write(generation, ec);
         };
-        ws->async_ping({}, std::move(ping_handler));
+        ws->async_ping({},
+            net::bind_allocator(net::recycling_allocator<void> {}, std::move(ping_handler)));
         return;
     }
 
-    auto write_handler = [self](const boost::system::error_code &ec,
-                             std::size_t bytes_transferred) {
-        self->handle_write(ec, bytes_transferred);
-    };
-    ws->async_write(net::buffer(item.message), std::move(write_handler));
+    auto write_handler = [self, generation = write_generation](const boost::system::error_code &ec,
+                             std::size_t) { self->handle_write(generation, ec); };
+    ws->async_write(net::buffer(slot.data.data(), slot.size),
+        net::bind_allocator(net::recycling_allocator<void> {}, std::move(write_handler)));
 }
 
-void SecureWebSocketClient::handle_write(const boost::system::error_code &ec, std::size_t)
+void SecureWebSocketClient::handle_write(std::uint64_t generation,
+    const boost::system::error_code &ec)
 {
-    if (!is_connected()) {
-        return;
+    if (generation != write_generation || !is_connected()) {
+        return; // write of an earlier connection; its slot was already released
     }
 
-    auto handler = std::move(write_queue.front().handler);
-    write_queue.pop_front();
+    auto &slot = write_slots.front();
+    auto handler = std::move(slot.handler);
+    slot.handler = nullptr; // the slot is reused, so do not keep the callback alive
+    write_slots.pop_front();
     write_in_progress = false;
 
     if (handler) {
@@ -383,28 +426,7 @@ void SecureWebSocketClient::handle_write(const boost::system::error_code &ec, st
         return;
     }
 
-    if (!write_queue.empty()) {
-        start_write();
-    }
-}
-
-void SecureWebSocketClient::handle_protocol_ping(const boost::system::error_code &ec)
-{
-    if (!is_connected()) {
-        return;
-    }
-
-    write_queue.pop_front();
-    write_in_progress = false;
-
-    if (ec) {
-        handle_unexpected_disconnect(ec);
-        return;
-    }
-
-    if (!write_queue.empty()) {
-        start_write();
-    }
+    start_write();
 }
 
 void SecureWebSocketClient::do_close(const CloseHandler &handler)
@@ -482,10 +504,13 @@ void SecureWebSocketClient::close_socket()
 
 void SecureWebSocketClient::fail_pending_writes()
 {
+    ++write_generation;
     write_in_progress = false;
-    while (!write_queue.empty()) {
-        auto handler = std::move(write_queue.front().handler);
-        write_queue.pop_front();
+    while (!write_slots.empty()) {
+        auto &slot = write_slots.front();
+        auto handler = std::move(slot.handler);
+        slot.handler = nullptr;
+        write_slots.pop_front();
         if (handler) {
             handler(std::make_error_code(std::errc::operation_canceled));
         }
@@ -520,11 +545,16 @@ void SecureWebSocketClient::on_unexpected_disconnect(const std::error_code &ec)
 
 void SecureWebSocketClient::start_ping_timer()
 {
+    start_ping_timer(ping_interval);
+}
+
+void SecureWebSocketClient::start_ping_timer(std::chrono::steady_clock::duration delay)
+{
     if (ping_interval <= std::chrono::seconds::zero() || !is_connected()) {
         return;
     }
 
-    ping_timer.expires_after(ping_interval);
+    ping_timer.expires_after(delay);
     auto self = shared_from_this();
     ping_timer.async_wait([self](const std::error_code &ec) { self->handle_ping_timer(ec); });
 }
@@ -540,15 +570,22 @@ void SecureWebSocketClient::handle_ping_timer(const std::error_code &ec)
         return;
     }
 
+    std::error_code ping_ec;
     if (ping_message_generator) {
         // Application text ping via the shared write queue
-        do_write(ping_message_generator(), nullptr);
+        ping_ec = do_write(ping_message_generator(), nullptr);
     } else {
         // WebSocket protocol ping frame
-        do_protocol_ping();
+        ping_ec = do_protocol_ping();
     }
 
-    start_ping_timer();
+    // A ping not queued because all write slots were in use is retried soon instead of after a
+    // full interval. Not immediately: the slots are usually full because the socket is stalled,
+    // and an immediate retry would spin until a slot frees. Other errors (a generated ping
+    // larger than a slot) would fail again, so they wait for the next interval.
+    const bool is_slots_full = ping_ec == std::make_error_code(std::errc::no_buffer_space);
+    start_ping_timer(is_slots_full ? std::chrono::steady_clock::duration { ping_retry_delay } :
+                                     std::chrono::steady_clock::duration { ping_interval });
 }
 
 void SecureWebSocketClient::start_read_timer()

@@ -13,6 +13,7 @@ include(GoogleTest)
 
 add_subdirectory(executor)
 add_subdirectory(timer)
+add_subdirectory(ring_buffer)
 add_subdirectory(secure_websocket_client)
 add_subdirectory(https_client_async)
 add_subdirectory(https_multiplex_client)

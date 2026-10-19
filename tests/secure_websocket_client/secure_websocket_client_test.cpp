@@ -19,10 +19,14 @@
 
 #include <atomic>
 #include <chrono>
+#include <condition_variable>
 #include <functional>
 #include <future>
+#include <memory>
 #include <mutex>
+#include <span>
 #include <string>
+#include <string_view>
 #include <system_error>
 #include <thread>
 #include <utility>
@@ -856,6 +860,228 @@ TEST(SecureWebSocketClientTest, read_timeout_does_not_disconnect_while_messages_
     // Once messages stop, the timeout still fires.
     ASSERT_EQ(disconnected_future.wait_for(std::chrono::seconds { 3 }), std::future_status::ready);
     EXPECT_EQ(disconnected_future.get(), std::make_error_code(std::errc::timed_out));
+    executor.stop();
+}
+
+namespace {
+
+using cpp_components::secure_websocket_client::SecureWebSocketClient;
+
+std::shared_ptr<SecureWebSocketClient> connect_to_echo_server(
+    cpp_components::executor::Executor &executor)
+{
+    const auto port_string = std::to_string(start_secure_echo_server());
+    auto client = SecureWebSocketClient::create(executor);
+    client->set_ca_certificate(TEST_CERT_DIR "/test-cert.pem");
+
+    std::promise<std::error_code> connected;
+    const auto connected_future = connected.get_future().share();
+    client->connect("localhost", port_string, "/",
+        [&connected](const std::error_code &ec) { connected.set_value(ec); });
+    if (!wait_ready(connected_future) || connected_future.get()) {
+        return nullptr;
+    }
+    return client;
+}
+
+// Runs callback on the executor thread and returns its result.
+template<typename F>
+auto run_on_executor(cpp_components::executor::Executor &executor, F callback)
+{
+    std::promise<decltype(callback())> result;
+    auto result_future = result.get_future();
+    executor.post([&result, &callback]() { result.set_value(callback()); });
+    return result_future.get();
+}
+
+// Collects echoed messages; wait_for() returns them once count have arrived.
+class MessageCollector {
+public:
+    void add(const char *data, size_t size)
+    {
+        const std::lock_guard lock(mutex);
+        messages.emplace_back(data, size);
+        changed.notify_all();
+    }
+
+    std::vector<std::string> wait_for(size_t count)
+    {
+        std::unique_lock lock(mutex);
+        changed.wait_for(lock, wait_timeout, [this, count]() { return messages.size() >= count; });
+        return messages;
+    }
+
+private:
+    std::mutex mutex;
+    std::condition_variable changed;
+    std::vector<std::string> messages;
+};
+
+std::span<const char> as_span(std::string_view text)
+{
+    return { text.data(), text.size() };
+}
+
+} // namespace
+
+TEST(SecureWebSocketClientTest, write_now_sends_message_from_executor_thread)
+{
+    cpp_components::executor::Executor executor {};
+    ASSERT_FALSE(executor.start());
+    auto client = connect_to_echo_server(executor);
+    ASSERT_TRUE(client);
+
+    MessageCollector collector;
+    client->set_message_handler(
+        [&collector](const char *data, size_t size) { collector.add(data, size); });
+
+    const auto ec = run_on_executor(executor,
+        [&client]() { return client->write_now(as_span("hello")); });
+    EXPECT_FALSE(ec);
+    EXPECT_EQ(collector.wait_for(1), std::vector<std::string> { "hello" });
+
+    client->close();
+    executor.stop();
+}
+
+TEST(SecureWebSocketClientTest, write_now_rejects_call_from_another_thread)
+{
+    cpp_components::executor::Executor executor {};
+    ASSERT_FALSE(executor.start());
+    auto client = connect_to_echo_server(executor);
+    ASSERT_TRUE(client);
+
+    EXPECT_EQ(client->write_now(as_span("hello")),
+        std::make_error_code(std::errc::operation_not_permitted));
+
+    client->close();
+    executor.stop();
+}
+
+TEST(SecureWebSocketClientTest, write_now_rejects_when_not_connected)
+{
+    cpp_components::executor::Executor executor {};
+    ASSERT_FALSE(executor.start());
+    auto client = SecureWebSocketClient::create(executor);
+
+    const auto ec = run_on_executor(executor,
+        [&client]() { return client->write_now(as_span("hello")); });
+    EXPECT_EQ(ec, std::make_error_code(std::errc::not_connected));
+    executor.stop();
+}
+
+TEST(SecureWebSocketClientTest, write_now_rejects_message_larger_than_slot)
+{
+    cpp_components::executor::Executor executor {};
+    ASSERT_FALSE(executor.start());
+    auto client = connect_to_echo_server(executor);
+    ASSERT_TRUE(client);
+
+    MessageCollector collector;
+    client->set_message_handler(
+        [&collector](const char *data, size_t size) { collector.add(data, size); });
+
+    const std::string largest(SecureWebSocketClient::get_write_slot_size(), 'x');
+    const std::string too_large(SecureWebSocketClient::get_write_slot_size() + 1, 'x');
+    const auto ec_too_large = run_on_executor(executor,
+        [&client, &too_large]() { return client->write_now(as_span(too_large)); });
+    const auto ec_largest = run_on_executor(executor,
+        [&client, &largest]() { return client->write_now(as_span(largest)); });
+
+    EXPECT_EQ(ec_too_large, std::make_error_code(std::errc::message_size));
+    EXPECT_FALSE(ec_largest);
+    EXPECT_EQ(collector.wait_for(1), std::vector<std::string> { largest });
+
+    client->close();
+    executor.stop();
+}
+
+TEST(SecureWebSocketClientTest, write_now_rejects_when_all_slots_are_in_use)
+{
+    cpp_components::executor::Executor executor {};
+    ASSERT_FALSE(executor.start());
+    auto client = connect_to_echo_server(executor);
+    ASSERT_TRUE(client);
+
+    MessageCollector collector;
+    client->set_message_handler(
+        [&collector](const char *data, size_t size) { collector.add(data, size); });
+
+    const auto slot_count = SecureWebSocketClient::get_write_slot_count();
+    // In one executor callback no write can complete, so every message holds its slot.
+    const auto results = run_on_executor(executor, [&client, slot_count]() {
+        std::vector<std::error_code> codes;
+        for (size_t i = 0; i <= slot_count; ++i) {
+            codes.push_back(client->write_now(as_span(std::to_string(i))));
+        }
+        return codes;
+    });
+
+    ASSERT_EQ(results.size(), slot_count + 1);
+    for (size_t i = 0; i < slot_count; ++i) {
+        EXPECT_FALSE(results[i]) << "message " << i;
+    }
+    EXPECT_EQ(results.back(), std::make_error_code(std::errc::no_buffer_space));
+
+    // The queued messages are all sent, in order.
+    const auto messages = collector.wait_for(slot_count);
+    ASSERT_EQ(messages.size(), slot_count);
+    for (size_t i = 0; i < slot_count; ++i) {
+        EXPECT_EQ(messages[i], std::to_string(i));
+    }
+
+    // Slots are reused once their writes complete.
+    const auto ec = run_on_executor(executor,
+        [&client]() { return client->write_now(as_span("again")); });
+    EXPECT_FALSE(ec);
+    EXPECT_EQ(collector.wait_for(slot_count + 1).back(), "again");
+
+    client->close();
+    executor.stop();
+}
+
+TEST(SecureWebSocketClientTest, write_reports_message_larger_than_slot_to_handler)
+{
+    cpp_components::executor::Executor executor {};
+    ASSERT_FALSE(executor.start());
+    auto client = connect_to_echo_server(executor);
+    ASSERT_TRUE(client);
+
+    std::promise<std::error_code> written;
+    const auto written_future = written.get_future().share();
+    client->write(std::string(SecureWebSocketClient::get_write_slot_size() + 1, 'x'),
+        [&written](const std::error_code &ec) { written.set_value(ec); });
+
+    ASSERT_TRUE(wait_ready(written_future));
+    EXPECT_EQ(written_future.get(), std::make_error_code(std::errc::message_size));
+    EXPECT_TRUE(client->is_connected());
+
+    client->close();
+    executor.stop();
+}
+
+TEST(SecureWebSocketClientTest, write_now_and_write_are_sent_in_queue_order)
+{
+    cpp_components::executor::Executor executor {};
+    ASSERT_FALSE(executor.start());
+    auto client = connect_to_echo_server(executor);
+    ASSERT_TRUE(client);
+
+    MessageCollector collector;
+    client->set_message_handler(
+        [&collector](const char *data, size_t size) { collector.add(data, size); });
+
+    // write() posts, so "2" is queued after "3", which write_now() queues right away.
+    const auto ec = run_on_executor(executor, [&client]() {
+        auto first = client->write_now(as_span("1"));
+        client->write("2", nullptr);
+        auto third = client->write_now(as_span("3"));
+        return first ? first : third;
+    });
+    EXPECT_FALSE(ec);
+    EXPECT_EQ(collector.wait_for(3), (std::vector<std::string> { "1", "3", "2" }));
+
+    client->close();
     executor.stop();
 }
 

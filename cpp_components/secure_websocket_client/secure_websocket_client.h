@@ -7,6 +7,7 @@
 #define CPP_COMPONENTS_SECURE_WEBSOCKET_CLIENT_H
 
 #include "cpp_components/executor/executor.h"
+#include "cpp_components/ring_buffer/ring_buffer.h"
 #include "cpp_components/timer/timer.h"
 
 #include <boost/asio/ip/tcp.hpp>
@@ -16,12 +17,14 @@
 #include <boost/beast/websocket.hpp>
 #include <boost/beast/websocket/ssl.hpp>
 
+#include <array>
 #include <atomic>
 #include <chrono>
 #include <cstddef>
-#include <deque>
+#include <cstdint>
 #include <functional>
 #include <memory>
+#include <span>
 #include <string>
 #include <system_error>
 
@@ -47,6 +50,8 @@ public:
 
     void connect(std::string host, std::string port, std::string resource, ConnectHandler handler);
     void write(std::string message, WriteHandler handler);
+    // Called from the executor thread only.
+    std::error_code write_now(std::span<const char> message);
     void close(CloseHandler handler = nullptr);
 
     void set_message_handler(MessageHandler handler);
@@ -60,6 +65,8 @@ public:
     void set_ca_certificate(const std::string &ca_certificate_file);
 
     static size_t get_read_buffer_size();
+    static size_t get_write_slot_size();
+    static size_t get_write_slot_count();
 
 protected:
     using Tcp = boost::asio::ip::tcp;
@@ -91,13 +98,16 @@ private:
         ping,
     };
 
-    struct WriteRequest {
+    // A queued write, stored in place.
+    struct WriteSlot {
         WriteType type { WriteType::message };
-        std::string message;
+        std::array<char, 16 * 1024> data;
+        size_t size = 0;
         WriteHandler handler;
     };
 
     inline static constexpr size_t read_buffer_size = 64 * 1024; // 64KB
+    inline static constexpr size_t write_slot_count = 64; // 64 * 16KB = 1MB
 
     void handle_resolve(ConnectHandler handler, const boost::system::error_code &ec,
         const Tcp::resolver::results_type &results);
@@ -110,11 +120,13 @@ private:
     void start_read();
     void handle_read(const boost::system::error_code &ec, std::size_t bytes_transferred);
 
-    void do_write(std::string message, WriteHandler handler);
-    void do_protocol_ping();
+    // Return the error if the write could not be queued.
+    std::error_code do_write(std::string message, WriteHandler handler);
+    std::error_code do_protocol_ping();
+    std::error_code queue_write(WriteType type, std::span<const char> message,
+        WriteHandler &handler);
     void start_write();
-    void handle_write(const boost::system::error_code &ec, std::size_t bytes_transferred);
-    void handle_protocol_ping(const boost::system::error_code &ec);
+    void handle_write(std::uint64_t generation, const boost::system::error_code &ec);
 
     void set_state(ConnectionState new_state);
     bool is_connecting() const;
@@ -126,6 +138,7 @@ private:
     void handle_unexpected_disconnect(const boost::system::error_code &ec);
 
     void start_ping_timer();
+    void start_ping_timer(std::chrono::steady_clock::duration delay);
     void stop_ping_timer();
     void handle_ping_timer(const std::error_code &ec);
 
@@ -139,7 +152,8 @@ private:
     timer::Timer ping_timer;
     timer::Timer read_timer;
     boost::beast::flat_static_buffer<read_buffer_size> read_buffer;
-    std::deque<WriteRequest> write_queue;
+    ring_buffer::RingBuffer<WriteSlot, write_slot_count> write_slots;
+    uint64_t write_generation = 0;
     bool write_in_progress = false;
     std::atomic<ConnectionState> state { ConnectionState::disconnected };
     MessageHandler message_handler;

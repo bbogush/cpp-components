@@ -82,7 +82,14 @@ BENCHMARK_DEFINE_F(WriteFixture, write_throughput)(benchmark::State &state)
         std::atomic<int> completions { 0 };
         std::atomic<bool> failed { false };
 
+        // Writes share a fixed ring of slots, so keep at most that many outstanding.
+        const auto max_outstanding = static_cast<int>(
+            cpp_components::secure_websocket_client::SecureWebSocketClient::get_write_slot_count());
         for (int i = 0; i < message_count; ++i) {
+            while (i - completions.load(std::memory_order_relaxed) >= max_outstanding &&
+                !failed.load()) {
+                std::this_thread::yield();
+            }
             client->write(payload, [&completions, &failed](const std::error_code &ec) {
                 if (ec) {
                     failed = true;
