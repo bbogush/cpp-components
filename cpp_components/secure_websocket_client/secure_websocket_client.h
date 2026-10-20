@@ -7,7 +7,7 @@
 #define CPP_COMPONENTS_SECURE_WEBSOCKET_CLIENT_H
 
 #include "cpp_components/executor/executor.h"
-#include "cpp_components/ring_buffer/ring_buffer.h"
+#include "cpp_components/fixed_ring_buffer/fixed_ring_buffer.h"
 #include "cpp_components/timer/timer.h"
 
 #include <boost/asio/ip/tcp.hpp>
@@ -155,7 +155,7 @@ private:
     timer::Timer ping_timer;
     timer::Timer read_timer;
     boost::beast::flat_static_buffer<read_buffer_size + read_padding> read_buffer;
-    ring_buffer::RingBuffer<WriteSlot, write_slot_count> write_slots;
+    fixed_ring_buffer::FixedRingBuffer<WriteSlot, write_slot_count> write_slots;
     uint64_t write_generation = 0;
     bool write_in_progress = false;
     std::atomic<ConnectionState> state { ConnectionState::disconnected };

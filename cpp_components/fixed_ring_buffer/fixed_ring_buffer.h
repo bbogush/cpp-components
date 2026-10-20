@@ -3,8 +3,8 @@
  *  it under the terms of the Apache License Version 2.0.
  */
 
-#ifndef CPP_COMPONENTS_RING_BUFFER_H
-#define CPP_COMPONENTS_RING_BUFFER_H
+#ifndef CPP_COMPONENTS_FIXED_RING_BUFFER_H
+#define CPP_COMPONENTS_FIXED_RING_BUFFER_H
 
 #include <array>
 #include <bit>
@@ -12,11 +12,11 @@
 #include <cstddef>
 #include <cstdint>
 
-namespace cpp_components::ring_buffer {
+namespace cpp_components::fixed_ring_buffer {
 
 // Fixed-capacity FIFO queue that never allocates, moves, or copies its elements.
 //
-// All capacity elements are default-constructed once, together with the RingBuffer, and are
+// All capacity elements are default-constructed once, together with the FixedRingBuffer, and are
 // reused: a push fills the next free element in place (back_slot(), then push_back()), and a
 // pop only releases it. Elements are not destroyed or reset on pop, so the caller resets what
 // must not outlive the entry (for example a callback). Elements do not move while queued, so a
@@ -25,7 +25,7 @@ namespace cpp_components::ring_buffer {
 // Not thread-safe: use from one thread only.
 template<typename T, size_t capacity>
     requires(std::has_single_bit(capacity))
-class RingBuffer {
+class FixedRingBuffer {
 public:
     static constexpr size_t get_capacity() noexcept
     {
@@ -94,6 +94,6 @@ private:
     uint64_t tail = 0; // position of the next free element
 };
 
-} // namespace cpp_components::ring_buffer
+} // namespace cpp_components::fixed_ring_buffer
 
-#endif // CPP_COMPONENTS_RING_BUFFER_H
+#endif // CPP_COMPONENTS_FIXED_RING_BUFFER_H
