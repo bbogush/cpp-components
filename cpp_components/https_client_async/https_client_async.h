@@ -88,18 +88,18 @@ private:
         std::chrono::milliseconds timeout, ResponseHandler handler);
     void do_cancel();
 
-    void handle_resolve(std::uint64_t generation, const boost::system::error_code &ec,
+    void handle_resolve(uint64_t generation, const boost::system::error_code &ec,
         const Tcp::resolver::results_type &results);
-    void handle_connect(std::uint64_t generation, const boost::system::error_code &ec,
+    void handle_connect(uint64_t generation, const boost::system::error_code &ec,
         const Tcp::endpoint &endpoint);
-    void handle_ssl_handshake(std::uint64_t generation, const boost::system::error_code &ec);
-    void handle_write(std::uint64_t generation, const boost::system::error_code &ec,
-        std::size_t bytes_transferred);
-    void handle_read(std::uint64_t generation, const boost::system::error_code &ec,
-        std::size_t bytes_transferred);
+    void handle_ssl_handshake(uint64_t generation, const boost::system::error_code &ec);
+    void handle_write(uint64_t generation, const boost::system::error_code &ec,
+        size_t bytes_transferred);
+    void handle_read(uint64_t generation, const boost::system::error_code &ec,
+        size_t bytes_transferred);
 
     void set_state(RequestState new_state);
-    bool is_current_request(std::uint64_t generation) const;
+    bool is_current_request(uint64_t generation) const;
     void create_stream();
     void destroy_stream();
     void cancel_pending_operations();
@@ -121,7 +121,7 @@ private:
     std::string host;
     std::chrono::milliseconds timeout { 0 };
     std::atomic<RequestState> state { RequestState::idle };
-    std::uint64_t request_generation = 0;
+    uint64_t request_generation = 0;
 };
 
 } // namespace cpp_components::https_client_async

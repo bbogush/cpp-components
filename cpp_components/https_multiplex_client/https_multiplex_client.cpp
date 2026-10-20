@@ -35,7 +35,7 @@ std::string trim_header_token(std::string value)
             value.back() == '\t')) {
         value.pop_back();
     }
-    std::size_t start = 0;
+    size_t start = 0;
     while (start < value.size() && (value[start] == ' ' || value[start] == '\t')) {
         ++start;
     }
@@ -141,7 +141,7 @@ void HttpsMultiplexClient::cancel()
     executor.post([self]() { self->do_cancel(); });
 }
 
-std::size_t HttpsMultiplexClient::pending_count() const
+size_t HttpsMultiplexClient::pending_count() const
 {
     return pending.load(std::memory_order_acquire);
 }

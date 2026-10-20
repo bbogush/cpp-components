@@ -333,14 +333,14 @@ void SecureWebSocketClient::start_read()
     }
 
     auto self = shared_from_this();
-    auto read_handler = [self](const boost::system::error_code &ec, std::size_t bytes_transferred) {
+    auto read_handler = [self](const boost::system::error_code &ec, size_t bytes_transferred) {
         self->handle_read(ec, bytes_transferred);
     };
     ws->async_read(read_buffer,
         net::bind_allocator(net::recycling_allocator<void> {}, std::move(read_handler)));
 }
 
-void SecureWebSocketClient::handle_read(const boost::system::error_code &ec, std::size_t)
+void SecureWebSocketClient::handle_read(const boost::system::error_code &ec, size_t)
 {
     if (!is_connected()) {
         return;
@@ -424,13 +424,12 @@ void SecureWebSocketClient::start_write()
     }
 
     auto write_handler = [self, generation = write_generation](const boost::system::error_code &ec,
-                             std::size_t) { self->handle_write(generation, ec); };
+                             size_t) { self->handle_write(generation, ec); };
     ws->async_write(net::buffer(slot.data.data(), slot.size),
         net::bind_allocator(net::recycling_allocator<void> {}, std::move(write_handler)));
 }
 
-void SecureWebSocketClient::handle_write(std::uint64_t generation,
-    const boost::system::error_code &ec)
+void SecureWebSocketClient::handle_write(uint64_t generation, const boost::system::error_code &ec)
 {
     if (generation != write_generation || !is_connected()) {
         return; // write of an earlier connection; its slot was already released

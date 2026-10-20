@@ -14,7 +14,7 @@ namespace {
 
 using cpp_components::ring_buffer::RingBuffer;
 
-template<std::size_t capacity>
+template<size_t capacity>
 concept ValidCapacity = requires { typename RingBuffer<int, capacity>; };
 
 static_assert(ValidCapacity<1>);

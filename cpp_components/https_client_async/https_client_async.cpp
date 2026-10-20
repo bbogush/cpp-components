@@ -156,7 +156,7 @@ void HttpsClientAsync::do_cancel()
     complete_request(std::make_error_code(std::errc::operation_canceled), {});
 }
 
-void HttpsClientAsync::handle_resolve(std::uint64_t generation, const boost::system::error_code &ec,
+void HttpsClientAsync::handle_resolve(uint64_t generation, const boost::system::error_code &ec,
     const Tcp::resolver::results_type &results)
 {
     if (!is_current_request(generation) || !stream) {
@@ -177,7 +177,7 @@ void HttpsClientAsync::handle_resolve(std::uint64_t generation, const boost::sys
     beast::get_lowest_layer(*stream).async_connect(results, std::move(connect_handler));
 }
 
-void HttpsClientAsync::handle_connect(std::uint64_t generation, const boost::system::error_code &ec,
+void HttpsClientAsync::handle_connect(uint64_t generation, const boost::system::error_code &ec,
     const Tcp::endpoint &)
 {
     if (!is_current_request(generation) || !stream) {
@@ -211,7 +211,7 @@ void HttpsClientAsync::handle_connect(std::uint64_t generation, const boost::sys
     stream->async_handshake(ssl::stream_base::client, std::move(ssl_handshake_handler));
 }
 
-void HttpsClientAsync::handle_ssl_handshake(std::uint64_t generation,
+void HttpsClientAsync::handle_ssl_handshake(uint64_t generation,
     const boost::system::error_code &ec)
 {
     if (!is_current_request(generation) || !stream) {
@@ -226,14 +226,14 @@ void HttpsClientAsync::handle_ssl_handshake(std::uint64_t generation,
     apply_timeout();
     auto self = shared_from_this();
     auto write_handler = [self, generation](const boost::system::error_code &write_ec,
-                             std::size_t bytes_transferred) {
+                             size_t bytes_transferred) {
         self->handle_write(generation, write_ec, bytes_transferred);
     };
     http::async_write(*stream, http_request, std::move(write_handler));
 }
 
-void HttpsClientAsync::handle_write(std::uint64_t generation, const boost::system::error_code &ec,
-    std::size_t)
+void HttpsClientAsync::handle_write(uint64_t generation, const boost::system::error_code &ec,
+    size_t)
 {
     if (!is_current_request(generation) || !stream) {
         return;
@@ -247,14 +247,13 @@ void HttpsClientAsync::handle_write(std::uint64_t generation, const boost::syste
     apply_timeout();
     auto self = shared_from_this();
     auto read_handler = [self, generation](const boost::system::error_code &read_ec,
-                            std::size_t bytes_transferred) {
+                            size_t bytes_transferred) {
         self->handle_read(generation, read_ec, bytes_transferred);
     };
     http::async_read(*stream, read_buffer, http_response, std::move(read_handler));
 }
 
-void HttpsClientAsync::handle_read(std::uint64_t generation, const boost::system::error_code &ec,
-    std::size_t)
+void HttpsClientAsync::handle_read(uint64_t generation, const boost::system::error_code &ec, size_t)
 {
     if (!is_current_request(generation) || !stream) {
         return;
@@ -284,7 +283,7 @@ void HttpsClientAsync::set_state(RequestState new_state)
     state.store(new_state, std::memory_order_release);
 }
 
-bool HttpsClientAsync::is_current_request(std::uint64_t generation) const
+bool HttpsClientAsync::is_current_request(uint64_t generation) const
 {
     return state.load(std::memory_order_acquire) == RequestState::in_progress &&
         generation == request_generation;

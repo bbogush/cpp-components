@@ -121,7 +121,7 @@ private:
         const boost::system::error_code &ec);
 
     void start_read();
-    void handle_read(const boost::system::error_code &ec, std::size_t bytes_transferred);
+    void handle_read(const boost::system::error_code &ec, size_t bytes_transferred);
 
     // Return the error if the write could not be queued.
     std::error_code do_write(std::string message, WriteHandler handler);
@@ -129,7 +129,7 @@ private:
     std::error_code queue_write(WriteType type, std::span<const char> message,
         WriteHandler &handler);
     void start_write();
-    void handle_write(std::uint64_t generation, const boost::system::error_code &ec);
+    void handle_write(uint64_t generation, const boost::system::error_code &ec);
 
     void set_state(ConnectionState new_state);
     bool is_connecting() const;

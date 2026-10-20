@@ -97,7 +97,7 @@ struct HttpsServer {
     }
 };
 
-HttpsServer start_https_server(std::size_t max_connections,
+HttpsServer start_https_server(size_t max_connections,
     std::function<void(const boost::beast::http::request<boost::beast::http::string_body> &,
         boost::beast::http::response<boost::beast::http::string_body> &)>
         handler)
@@ -127,7 +127,7 @@ HttpsServer start_https_server(std::size_t max_connections,
         std::vector<std::thread> workers;
         workers.reserve(max_connections);
 
-        for (std::size_t i = 0; i < max_connections; ++i) {
+        for (size_t i = 0; i < max_connections; ++i) {
             tcp::socket socket(*ioc);
             boost::system::error_code ec;
             acceptor->accept(socket, ec);
@@ -312,7 +312,7 @@ TEST(HttpsMultiplexClientTest, post_sends_body_and_headers)
 TEST(HttpsMultiplexClientTest, concurrent_requests_complete)
 {
     constexpr int request_count = 4;
-    auto server = start_https_server(static_cast<std::size_t>(request_count),
+    auto server = start_https_server(static_cast<size_t>(request_count),
         [](const auto &request, auto &response) {
             response.result(boost::beast::http::status::ok);
             response.body() = std::string(request.target());
@@ -329,18 +329,18 @@ TEST(HttpsMultiplexClientTest, concurrent_requests_complete)
     futures.reserve(request_count);
 
     for (int i = 0; i < request_count; ++i) {
-        futures.push_back(results[static_cast<std::size_t>(i)].get_future().share());
+        futures.push_back(results[static_cast<size_t>(i)].get_future().share());
         const auto target = "/item/" + std::to_string(i);
         client->get("localhost", port_string, target, std::chrono::milliseconds { 15000 },
             [&results, i](const std::error_code &ec,
                 cpp_components::https_multiplex_client::HttpResponse response) {
-                results[static_cast<std::size_t>(i)].set_value({ ec, std::move(response.body) });
+                results[static_cast<size_t>(i)].set_value({ ec, std::move(response.body) });
             });
     }
 
     for (int i = 0; i < request_count; ++i) {
-        ASSERT_TRUE(wait_ready(futures[static_cast<std::size_t>(i)]));
-        const auto [ec, body] = futures[static_cast<std::size_t>(i)].get();
+        ASSERT_TRUE(wait_ready(futures[static_cast<size_t>(i)]));
+        const auto [ec, body] = futures[static_cast<size_t>(i)].get();
         EXPECT_FALSE(ec);
         EXPECT_EQ(body, "/item/" + std::to_string(i));
     }

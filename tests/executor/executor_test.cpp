@@ -357,9 +357,9 @@ TEST(ExecutorTest, doorbell_handler_runs_again_while_work_remains)
 
 TEST(ExecutorTest, doorbell_does_not_lose_wakeups)
 {
-    constexpr std::uint64_t item_count = 200'000;
-    std::atomic<std::uint64_t> produced { 0 };
-    std::atomic<std::uint64_t> consumed { 0 };
+    constexpr uint64_t item_count = 200'000;
+    std::atomic<uint64_t> produced { 0 };
+    std::atomic<uint64_t> consumed { 0 };
 
     cpp_components::executor::Executor executor { [&produced, &consumed]() {
         consumed.store(produced.load(std::memory_order_acquire), std::memory_order_release);
@@ -368,7 +368,7 @@ TEST(ExecutorTest, doorbell_does_not_lose_wakeups)
     ASSERT_FALSE(executor.start());
 
     std::thread producer([&executor, &produced]() {
-        for (std::uint64_t i = 0; i < item_count; ++i) {
+        for (uint64_t i = 0; i < item_count; ++i) {
             produced.fetch_add(1, std::memory_order_release);
             executor.ring();
             if (i % 64 == 0) {

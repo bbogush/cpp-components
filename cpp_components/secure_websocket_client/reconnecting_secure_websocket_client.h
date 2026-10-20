@@ -55,11 +55,11 @@ private:
     std::shared_ptr<ReconnectingSecureWebSocketClient> get_self();
 
     void start_connect_attempt();
-    void handle_connection_ready(std::uint64_t generation, std::string host, std::string port,
+    void handle_connection_ready(uint64_t generation, std::string host, std::string port,
         std::string resource);
-    void handle_connect_result(std::uint64_t generation, const std::error_code &ec);
+    void handle_connect_result(uint64_t generation, const std::error_code &ec);
     void schedule_reconnect();
-    void handle_reconnect_timer(std::uint64_t generation, const std::error_code &ec);
+    void handle_reconnect_timer(uint64_t generation, const std::error_code &ec);
     void stop_reconnecting();
     void set_reconnect_state(State new_state);
     bool is_reconnect_active() const;
@@ -71,7 +71,7 @@ private:
     std::chrono::steady_clock::duration max_reconnect_delay { std::chrono::seconds { 60 } };
     std::chrono::steady_clock::duration current_reconnect_delay { std::chrono::seconds { 1 } };
     std::atomic<State> reconnect_state { State::idle };
-    std::uint64_t connection_generation = 0;
+    uint64_t connection_generation = 0;
 };
 
 } // namespace cpp_components::secure_websocket_client

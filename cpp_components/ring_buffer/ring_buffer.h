@@ -23,11 +23,11 @@ namespace cpp_components::ring_buffer {
 // reference to a queued element stays valid until it is popped, even while others are pushed.
 //
 // Not thread-safe: use from one thread only.
-template<typename T, std::size_t capacity>
+template<typename T, size_t capacity>
     requires(std::has_single_bit(capacity))
 class RingBuffer {
 public:
-    static constexpr std::size_t get_capacity() noexcept
+    static constexpr size_t get_capacity() noexcept
     {
         return capacity;
     }
@@ -42,10 +42,10 @@ public:
         return size() == capacity;
     }
 
-    std::size_t size() const noexcept
+    size_t size() const noexcept
     {
         // Correct across wrap-around of the 64-bit indices.
-        return static_cast<std::size_t>(tail - head);
+        return static_cast<size_t>(tail - head);
     }
 
     // Next free element, to fill in place before push_back(). Requires !full().
@@ -84,14 +84,14 @@ public:
 
 private:
     // capacity is a power of two, so this mapping stays continuous when the indices wrap.
-    static constexpr std::size_t index(std::uint64_t position) noexcept
+    static constexpr size_t index(uint64_t position) noexcept
     {
-        return static_cast<std::size_t>(position & (capacity - 1));
+        return static_cast<size_t>(position & (capacity - 1));
     }
 
     std::array<T, capacity> elements {};
-    std::uint64_t head = 0; // position of the oldest queued element
-    std::uint64_t tail = 0; // position of the next free element
+    uint64_t head = 0; // position of the oldest queued element
+    uint64_t tail = 0; // position of the next free element
 };
 
 } // namespace cpp_components::ring_buffer

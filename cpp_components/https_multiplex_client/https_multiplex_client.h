@@ -68,7 +68,7 @@ public:
         ResponseHandler handler);
 
     void cancel();
-    std::size_t pending_count() const;
+    size_t pending_count() const;
     bool is_busy() const;
 
 private:
@@ -132,7 +132,7 @@ private:
     CURLM *multi = nullptr;
     int still_running = 0;
     std::string ca_certificate_file;
-    std::atomic<std::size_t> pending { 0 };
+    std::atomic<size_t> pending { 0 };
     std::unordered_map<curl_socket_t, std::shared_ptr<TcpSocket>> socket_map;
     std::unordered_map<curl_socket_t, int> socket_actions;
     std::unordered_map<ConnContext *, std::shared_ptr<ConnContext>> connections;

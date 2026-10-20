@@ -1099,7 +1099,7 @@ asm("nop");
 
 ```cpp
 // OK
-using Id = std::uint64_t;
+using Id = uint64_t;
 ```
 
 ### Switch Statements

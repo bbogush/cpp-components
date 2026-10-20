@@ -215,7 +215,7 @@ void Executor::start_doorbell_wait()
 {
     doorbell.async_read_some(boost::asio::buffer(&doorbell_counter, sizeof(doorbell_counter)),
         boost::asio::bind_allocator(boost::asio::recycling_allocator<void> {},
-            [this](const boost::system::error_code &ec, std::size_t) { handle_doorbell(ec); }));
+            [this](const boost::system::error_code &ec, size_t) { handle_doorbell(ec); }));
 }
 
 void Executor::handle_doorbell(const boost::system::error_code &ec)

@@ -120,7 +120,7 @@ void ReconnectingSecureWebSocketClient::start_connect_attempt()
     }
 }
 
-void ReconnectingSecureWebSocketClient::handle_connection_ready(std::uint64_t generation,
+void ReconnectingSecureWebSocketClient::handle_connection_ready(uint64_t generation,
     std::string host, std::string port, std::string resource)
 {
     if (generation != connection_generation ||
@@ -139,7 +139,7 @@ void ReconnectingSecureWebSocketClient::handle_connection_ready(std::uint64_t ge
     do_connect(connect_result_handler);
 }
 
-void ReconnectingSecureWebSocketClient::handle_connect_result(std::uint64_t generation,
+void ReconnectingSecureWebSocketClient::handle_connect_result(uint64_t generation,
     const std::error_code &ec)
 {
     if (generation != connection_generation ||
@@ -182,7 +182,7 @@ void ReconnectingSecureWebSocketClient::schedule_reconnect()
     reconnect_timer.async_wait(reconnect_timer_handler);
 }
 
-void ReconnectingSecureWebSocketClient::handle_reconnect_timer(std::uint64_t generation,
+void ReconnectingSecureWebSocketClient::handle_reconnect_timer(uint64_t generation,
     const std::error_code &ec)
 {
     if (ec || generation != connection_generation ||
