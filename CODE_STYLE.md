@@ -156,7 +156,7 @@ This document defines the coding style for this C++ project. The goal is **reada
 ### Self-contained Headers
 
 - Use `#include <...>` for C/C++ standard library headers; `#include "..."` for project headers.
-- Headers must compile on their own — include only what they need; put other includes in `.cpp` files.
+- Headers must compile on their own - include only what they need; put other includes in `.cpp` files.
 - Expose only the module's public variables, types, and functions; keep implementation details in `.cpp` files.
 - Use the same license header as the rest of the project.
 - Do not use `.inl.h` split headers; put template/inline definitions in the header when required.
@@ -245,7 +245,7 @@ void register_type(const ExpensiveType &value);
 ### Defining Functions in Header Files
 
 - Define functions in headers only when `inline`, `constexpr`, or templates require it.
-- Avoid non-trivial function bodies in headers; keep public inline bodies short (roughly ≤10 lines) and put larger bodies in `.cpp` files.
+- Avoid non-trivial function bodies in headers; keep public inline bodies short (roughly <=10 lines) and put larger bodies in `.cpp` files.
 
 ```cpp
 // OK in header
@@ -587,7 +587,7 @@ public:
 
 ### Declaration Order
 
-- Keep declaration order: `public` → `protected` → `private`.
+- Keep declaration order: `public` -> `protected` -> `private`.
 - Within each section, declare in this order:
 
 1. Types and type aliases (typedef, using, enum, nested structs and classes, and friend types).
@@ -684,7 +684,7 @@ void Foo::disconnect()
 // OK
 std::error_code get_id(const std::string &name, Id &id);
 
-// Wrong — output first
+// Wrong - output first
 void get_id(Id &id, const std::string &name);
 ```
 
@@ -870,7 +870,7 @@ uint64_t my_mask { uint64_t{ 3 } << 48 };
 - Macro in header should have project name prefix.
 
 ```cpp
-// OK — macro formatting
+// OK - macro formatting
 #define SQUARE(x) ((x) * (x))
 
 // Wrong
@@ -890,7 +890,7 @@ uint64_t my_mask { uint64_t{ 3 } << 48 };
 // OK
 #define SUM(x, y) ((x) + (y))
 
-// Wrong — expansion not fully parenthesized
+// Wrong - expansion not fully parenthesized
 #define SUM(x, y) (x) + (y)
 ```
 
@@ -1053,7 +1053,7 @@ Config cfg {
 
 ### Disallowed standard library features
 
-- `std::auto_ptr` — use `std::unique_ptr`.
+- `std::auto_ptr` - use `std::unique_ptr`.
 - Avoid deprecated facilities; follow compiler warnings.
 
 ### Third-party Libraries
@@ -1067,22 +1067,22 @@ Config cfg {
 - Wrap unavoidable extensions in portability macros or headers.
 
 ```cpp
-// OK — standard attribute
+// OK - standard attribute
 [[nodiscard]] int parse(const std::string &input);
 
-// OK — standard library / portable code
+// OK - standard library / portable code
 int count = std::popcount(flags); // C++20
 
-// Wrong — vendor builtin in application code
+// Wrong - vendor builtin in application code
 int count = __builtin_popcount(flags);
 
-// Wrong — GCC/Clang-only attribute in public API
+// Wrong - GCC/Clang-only attribute in public API
 __attribute__((packed)) struct Header { int id; };
 
-// Wrong — inline assembly without abstraction
+// Wrong - inline assembly without abstraction
 asm("nop");
 
-// OK — isolated platform layer (document why standard C++ is insufficient)
+// OK - isolated platform layer (document why standard C++ is insufficient)
 #if defined(__GNUC__)
 #define FORCE_INLINE __attribute__((always_inline)) inline
 #elif defined(_MSC_VER)
@@ -1095,7 +1095,7 @@ asm("nop");
 ### Aliases
 
 - Prefer `using` over `typedef`.
-- Type aliases at the appropriate scope — public API types in headers, local aliases in `.cpp`.
+- Type aliases at the appropriate scope - public API types in headers, local aliases in `.cpp`.
 
 ```cpp
 // OK
@@ -1117,14 +1117,14 @@ default:
     break;
 }
 
-// Wrong — default is missing
+// Wrong - default is missing
 switch (var) {
 case 0:
     do_job();
     break;
 }
 
-// OK — intentional fall-through
+// OK - intentional fall-through
 switch (state) {
 case State::idle:
     reset();
@@ -1147,7 +1147,7 @@ default:
 ### Choosing Names
 
 - Clarity over cleverness.
-- Names reflect meaning at their scope — short in tight loops, descriptive in public APIs.
+- Names reflect meaning at their scope - short in tight loops, descriptive in public APIs.
 - **Project style:** lowercase `snake_case` for functions, variables, and constants.
 - Do not use `_` or `__` prefixes reserved for the implementation.
 
@@ -1296,7 +1296,7 @@ if (has_valid_session() && session().user_id() == expected_user_id && session().
 
 ```cpp
 // OK
-constexpr double micros_per_second = 1e6; // µs
+constexpr double micros_per_second = 1e6; // us
 ```
 
 ### Indentation
@@ -1307,7 +1307,7 @@ constexpr double micros_per_second = 1e6; // µs
 - Do not column-align variable assignments, function arguments, or comments.
 
 ```cpp
-// OK — function call continuation
+// OK - function call continuation
 log_info("parameter1: {} parameter2: {} parameter3: {} parameter4: {}", parameter1,
     parameter2, parameter3, parameter4);
 
@@ -1404,7 +1404,7 @@ void my_function( int param1,
 // OK
 void my_func();
 
-// OK — C linkage
+// OK - C linkage
 extern "C" {
 void my_func(void);
 }
@@ -1531,10 +1531,10 @@ size_t i;
 for (i = 0; i < 5; i++) {           // OK
 }
 
-for (i = 0; i < 5; i++){            // Wrong — space before {
+for (i = 0; i < 5; i++){            // Wrong - space before {
 }
 
-for (i = 0; i < 5; i++)             // Wrong — brace on next line
+for (i = 0; i < 5; i++)             // Wrong - brace on next line
 {
 }
 
@@ -1625,7 +1625,7 @@ for (i = 0; i < *p; i++);
 - Do not use `else` after `return` in an `if` block.
 
 ```cpp
-// OK — prefer continue over nesting
+// OK - prefer continue over nesting
 while (condition1) {
     if (!condition2) {
         continue;
@@ -1647,7 +1647,7 @@ while (condition1) {
     }
 }
 
-// OK — no else after return
+// OK - no else after return
 if (condition) {
     return;
 }
@@ -1731,7 +1731,7 @@ switch (c) {
         break;
 }
 
-// OK — case-local variables
+// OK - case-local variables
 switch (n) {
 case 0: {
     int32_t a, b;
@@ -1752,7 +1752,7 @@ case 0:
     }
 }
 
-// Wrong — break must be inside the braces
+// Wrong - break must be inside the braces
 switch (n) {
 case 0: {
     int32_t a;
@@ -1821,7 +1821,7 @@ if (a > b &&
 - No parentheses around return values unless needed for clarity.
 - Pointer functions return `nullptr` on failure.
 - Functions that can fail return `std::error_code`; a default-constructed value means success.
-- `bool` return types are for predicates (`is_*`, `has_*`) — return `true` / `false` directly, not `0` / `1`. Do not use `bool` for general success/failure status.
+- `bool` return types are for predicates (`is_*`, `has_*`) - return `true` / `false` directly, not `0` / `1`. Do not use `bool` for general success/failure status.
 - No bare `return;` at the end of `void` functions.
 - Exit early on errors and failed preconditions.
 
@@ -1864,7 +1864,7 @@ void *my_alloc()
     return is_ok ? ptr : nullptr;
 }
 
-// Wrong — bool for success/fail
+// Wrong - bool for success/fail
 bool my_func()
 {
     if (error) {
@@ -1889,7 +1889,7 @@ void my_func()
 ```
 
 ```cpp
-// OK — exit early
+// OK - exit early
 void my_func()
 {
     if (!condition) {
@@ -1907,7 +1907,7 @@ void my_func()
     x = 10;
 }
 
-// Wrong — deep nesting
+// Wrong - deep nesting
 void my_func()
 {
     if (condition) {
@@ -1925,10 +1925,10 @@ void my_func()
 - Use brace initialization `{}` to prevent narrowing conversions.
 
 ```cpp
-// OK — compile error
+// OK - compile error
 int x { 3.14 };
 
-// Wrong — silent narrowing
+// Wrong - silent narrowing
 int y = 3.14;
 ```
 
@@ -2074,7 +2074,7 @@ void func()
     log_info("code block 2");
 }
 
-// Wrong — multiple consecutive blank lines
+// Wrong - multiple consecutive blank lines
 void func()
 {
     log_info("code block 1");

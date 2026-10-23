@@ -1,4 +1,4 @@
-# [Feature/Project Name] — Design Document
+# [Feature/Project Name] - Design Document
 
 | | |
 |---|---|
@@ -7,6 +7,12 @@
 | **Date** | |
 | **Related Issues/Tickets** | |
 | **Revision** | v0.1 |
+
+---
+
+## General Rules
+
+- Use only ASCII characters. Non-ASCII symbols are hard to type, search, and diff, and may render inconsistently across editors and terminals.
 
 ---
 

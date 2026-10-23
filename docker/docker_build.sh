@@ -6,6 +6,6 @@ DOCKERFILE="docker/Dockerfile"
 # Exit on error
 set -e
 
-echo "🟢 Start building Docker image."
+echo "Start building Docker image."
 docker build -t "$IMAGE_NAME" -f "$DOCKERFILE" .
-echo "✅ Docker image built successfully."
+echo "Docker image built successfully."

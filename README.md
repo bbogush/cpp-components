@@ -6,10 +6,10 @@ Reusable C++20 components packaged as a static library for consumption via CMake
 
 ## Prerequisites
 
-- [Docker](https://docs.docker.com/get-docker/) — for the development environment
-- CMake 3.20+ — only needed if building outside Docker
+- [Docker](https://docs.docker.com/get-docker/) - for the development environment
+- CMake 3.20+ - only needed if building outside Docker
 - System libraries: Boost (system), OpenSSL, libcurl, liburing (`liburing-dev`)
-- Linux kernel ≥ 5.10 (Boost.Asio uses the io_uring backend)
+- Linux kernel >= 5.10 (Boost.Asio uses the io_uring backend)
 
 ## Using as a dependency
 
@@ -64,7 +64,7 @@ Clean up when done:
 As an alternative to starting Docker manually, VS Code can configure the environment automatically using the [Dev Containers](https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.remote-containers) extension. It opens the project in the same Docker image and installs the C++ and CMake extensions.
 
 1. Open the project in VS Code
-2. **Ctrl+Shift+P** → **Dev Containers: Reopen in Container**
+2. **Ctrl+Shift+P** -> **Dev Containers: Reopen in Container**
 
 The container uses `docker/Dockerfile` (same as `docker_run.sh`).
 
@@ -157,7 +157,7 @@ sudo perf report --stdio > perf_report.txt
 ## Coverage
 
 The `coverage` preset builds the `cpp_components/` targets with GCC coverage instrumentation
-(`--coverage`) and enables the unit tests. Coverage is scoped to `cpp_components/` — the
+(`--coverage`) and enables the unit tests. Coverage is scoped to `cpp_components/` - the
 report filters out test sources and Google Test headers.
 
 Configure, build, and run the tests to produce coverage data, then build the
@@ -217,13 +217,13 @@ cmake -P cmake/clang_format.cmake
 
 ```
 .
-├── CMakeLists.txt          # Root CMake project
-├── CMakePresets.json       # Release, debug, tests, ASan, coverage, clang-tidy, and benchmarks presets
-├── cpp_components/         # Library sources and public headers
-├── tests/                  # Google Test unit tests
-├── benchmarks/             # Google Benchmark targets
-├── docker/                 # Docker image and helper scripts
-└── .devcontainer/          # VS Code Dev Container config
+|-- CMakeLists.txt          # Root CMake project
+|-- CMakePresets.json       # Release, debug, tests, ASan, coverage, clang-tidy, and benchmarks presets
+|-- cpp_components/         # Library sources and public headers
+|-- tests/                  # Google Test unit tests
+|-- benchmarks/             # Google Benchmark targets
+|-- docker/                 # Docker image and helper scripts
+`-- .devcontainer/          # VS Code Dev Container config
 ```
 
 ## Contributing
@@ -232,4 +232,4 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) and [CODE_STYLE.md](CODE_STYLE.md).
 
 ## License
 
-Apache License 2.0 — see [LICENSE](LICENSE).
+Apache License 2.0 - see [LICENSE](LICENSE).

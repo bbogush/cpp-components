@@ -116,13 +116,13 @@ jobs:
                   else:
                       change = old[metric] / current[metric] - 1
                   if change < -fail:
-                      status = "❌ fail"
+                      status = "fail"
                       failures.append(f"{result.stem} {name}: {metric} {change:+.1%}")
                   elif change < -warn:
-                      status = "⚠️ warning"
+                      status = "warning"
                       print(f"::warning title=Benchmark regression::{result.stem} {name}: {metric} {change:+.1%}")
                   else:
-                      status = "✅ ok"
+                      status = "ok"
                   rows.append((result.stem, name, metric, fmt(old[metric], metric, old.get("time_unit", "ns")),
                                fmt(current[metric], metric, unit), f"{change:+.1%}", status))
 
