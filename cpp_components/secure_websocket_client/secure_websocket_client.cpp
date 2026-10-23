@@ -388,11 +388,11 @@ std::error_code SecureWebSocketClient::queue_write(WriteType type, std::span<con
         return std::make_error_code(std::errc::message_size);
     }
 
-    if (write_slots.full()) {
+    if (write_slots.is_full()) {
         return std::make_error_code(std::errc::no_buffer_space);
     }
 
-    auto &slot = write_slots.back_slot();
+    auto &slot = write_slots.get_back_slot();
     slot.type = type;
     std::copy(message.begin(), message.end(), slot.data.begin());
     slot.size = message.size();
@@ -405,13 +405,13 @@ std::error_code SecureWebSocketClient::queue_write(WriteType type, std::span<con
 
 void SecureWebSocketClient::start_write()
 {
-    if (write_in_progress || write_slots.empty() || !ws) {
+    if (write_in_progress || write_slots.is_empty() || !ws) {
         return;
     }
 
     write_in_progress = true;
     auto self = shared_from_this();
-    const auto &slot = write_slots.front();
+    const auto &slot = write_slots.get_front();
 
     if (slot.type == WriteType::ping) {
         auto ping_handler = [self, generation = write_generation](
@@ -435,7 +435,7 @@ void SecureWebSocketClient::handle_write(uint64_t generation, const boost::syste
         return; // write of an earlier connection; its slot was already released
     }
 
-    auto &slot = write_slots.front();
+    auto &slot = write_slots.get_front();
     auto handler = std::move(slot.handler);
     slot.handler = nullptr; // the slot is reused, so do not keep the callback alive
     write_slots.pop_front();
@@ -532,8 +532,8 @@ void SecureWebSocketClient::fail_pending_writes()
 {
     ++write_generation;
     write_in_progress = false;
-    while (!write_slots.empty()) {
-        auto &slot = write_slots.front();
+    while (!write_slots.is_empty()) {
+        auto &slot = write_slots.get_front();
         auto handler = std::move(slot.handler);
         slot.handler = nullptr;
         write_slots.pop_front();

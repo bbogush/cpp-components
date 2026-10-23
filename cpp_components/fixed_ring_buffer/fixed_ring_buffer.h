@@ -11,13 +11,14 @@
 #include <cassert>
 #include <cstddef>
 #include <cstdint>
+#include <utility>
 
 namespace cpp_components::fixed_ring_buffer {
 
 // Fixed-capacity FIFO queue that never allocates, moves, or copies its elements.
 //
 // All capacity elements are default-constructed once, together with the FixedRingBuffer, and are
-// reused: a push fills the next free element in place (back_slot(), then push_back()), and a
+// reused: a push fills the next free element in place (get_back_slot(), then push_back()), and a
 // pop only releases it. Elements are not destroyed or reset on pop, so the caller resets what
 // must not outlive the entry (for example a callback). Elements do not move while queued, so a
 // reference to a queued element stays valid until it is popped, even while others are pushed.
@@ -32,66 +33,74 @@ public:
         return capacity;
     }
 
-    bool empty() const noexcept
+    bool is_empty() const noexcept
     {
         return head == tail;
     }
 
-    bool full() const noexcept
+    bool is_full() const noexcept
     {
-        return size() == capacity;
+        return get_size() == capacity;
     }
 
-    size_t size() const noexcept
+    size_t get_size() const noexcept
     {
-        // Correct across wrap-around of the 64-bit indices.
         return static_cast<size_t>(tail - head);
     }
 
-    // Next free element, to fill in place before push_back(). Requires !full().
-    T &back_slot() noexcept
+    T &get_back_slot() noexcept
     {
-        assert(!full());
-        return elements[index(tail)];
+        assert(!is_full());
+        return buffer[get_index(tail)];
     }
 
-    // Queues the element filled through back_slot(). Requires !full().
     void push_back() noexcept
     {
-        assert(!full());
+        assert(!is_full());
         ++tail;
     }
 
-    // Oldest queued element. Requires !empty().
-    T &front() noexcept
+    void push_back(const T &value) noexcept
     {
-        assert(!empty());
-        return elements[index(head)];
+        assert(!is_full());
+        buffer[get_index(tail)] = value;
+        ++tail;
     }
 
-    const T &front() const noexcept
+    void push_back(T &&value) noexcept
     {
-        assert(!empty());
-        return elements[index(head)];
+        assert(!is_full());
+        buffer[get_index(tail)] = std::move(value);
+        ++tail;
     }
 
-    // Releases the oldest queued element. Requires !empty().
+    T &get_front() noexcept
+    {
+        assert(!is_empty());
+        return buffer[get_index(head)];
+    }
+
+    const T &get_front() const noexcept
+    {
+        assert(!is_empty());
+        return buffer[get_index(head)];
+    }
+
     void pop_front() noexcept
     {
-        assert(!empty());
+        assert(!is_empty());
         ++head;
     }
 
 private:
-    // capacity is a power of two, so this mapping stays continuous when the indices wrap.
-    static constexpr size_t index(uint64_t position) noexcept
+    static constexpr size_t get_index(uint64_t pos) noexcept
     {
-        return static_cast<size_t>(position & (capacity - 1));
+        return static_cast<size_t>(pos & (capacity - 1));
     }
 
-    std::array<T, capacity> elements {};
-    uint64_t head = 0; // position of the oldest queued element
-    uint64_t tail = 0; // position of the next free element
+    std::array<T, capacity> buffer {};
+    uint64_t head = 0; // oldest element index
+    uint64_t tail = 0; // next free element index
 };
 
 } // namespace cpp_components::fixed_ring_buffer
