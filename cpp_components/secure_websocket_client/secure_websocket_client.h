@@ -122,7 +122,7 @@ private:
 
     inline static constexpr size_t read_buffer_size = 64 * 1024; // 64KB
     inline static constexpr size_t read_padding = 64;
-    inline static constexpr size_t write_slot_count = 1024; // 1024 * 8KB = 8MB
+    inline static constexpr size_t write_slot_count = 2048; // 2048 * 8KB = 16MB
 
     void handle_resolve(ConnectHandler handler, const boost::system::error_code &ec,
         const Tcp::resolver::results_type &results);
