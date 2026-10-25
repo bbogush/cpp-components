@@ -166,26 +166,6 @@ std::error_code SecureWebSocketClient::set_ca_certificate(const std::string &ca_
     return static_cast<std::error_code>(ec);
 }
 
-size_t SecureWebSocketClient::get_read_buffer_size()
-{
-    return read_buffer_size;
-}
-
-size_t SecureWebSocketClient::get_read_padding()
-{
-    return read_padding;
-}
-
-size_t SecureWebSocketClient::get_write_slot_size()
-{
-    return std::tuple_size_v<decltype(WriteSlot::data)>;
-}
-
-size_t SecureWebSocketClient::get_write_slot_count()
-{
-    return write_slot_count;
-}
-
 std::error_code SecureWebSocketClient::write_now(std::span<const char> message)
 {
     if (!executor.get_context().get_executor().running_in_this_thread()) {

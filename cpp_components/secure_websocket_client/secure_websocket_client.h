@@ -64,11 +64,23 @@ public:
 
     std::error_code set_ca_certificate(const std::string &ca_certificate_file);
 
-    static size_t get_read_buffer_size();
+    static constexpr size_t get_read_buffer_size()
+    {
+        return read_buffer_size;
+    }
     // Free bytes guaranteed after each received message.
-    static size_t get_read_padding();
-    static size_t get_write_slot_size();
-    static size_t get_write_slot_count();
+    static constexpr size_t get_read_padding()
+    {
+        return read_padding;
+    }
+    static constexpr size_t get_write_slot_size()
+    {
+        return std::tuple_size_v<decltype(WriteSlot::data)>;
+    }
+    static constexpr size_t get_write_slot_count()
+    {
+        return write_slot_count;
+    }
 
 protected:
     using Tcp = boost::asio::ip::tcp;
