@@ -115,14 +115,14 @@ private:
     // A queued write, stored in place.
     struct WriteSlot {
         WriteType type { WriteType::message };
-        std::array<char, 16 * 1024> data;
+        std::array<char, 8 * 1024> data;
         size_t size = 0;
         WriteHandler handler;
     };
 
     inline static constexpr size_t read_buffer_size = 64 * 1024; // 64KB
     inline static constexpr size_t read_padding = 64;
-    inline static constexpr size_t write_slot_count = 64; // 64 * 16KB = 1MB
+    inline static constexpr size_t write_slot_count = 1024; // 1024 * 8KB = 8MB
 
     void handle_resolve(ConnectHandler handler, const boost::system::error_code &ec,
         const Tcp::resolver::results_type &results);
