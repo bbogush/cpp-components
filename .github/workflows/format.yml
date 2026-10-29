@@ -1,0 +1,29 @@
+name: Format
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+    branches: [master]
+  workflow_dispatch:
+
+jobs:
+  format:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # Ubuntu 24.04 packages, matching the Docker image toolchain
+      - name: Install formatters
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y clang-format cmake-format
+          clang-format --version
+          cmake-format --version
+
+      # Same check as the format-check preset, without configuring the project
+      - name: Check formatting
+        run: cmake -P cmake/format.cmake

@@ -196,21 +196,25 @@ cmake --preset clang-tidy -DCLANG_TIDY_JOBS=8
 cmake --build --preset clang-tidy-check
 ```
 
-## Clang-Format
+## Formatting
 
-Formatting follows the project `.clang-format`. The `clang-format-check` build preset checks all
-git-tracked C++ files (`*.cpp`, `*.cc`, `*.h`, `*.hpp`) without modifying them and fails on any
-violation:
+The `format-check` build preset checks all git-tracked files without modifying them and fails on
+any violation:
+
+- C++ files (`*.cpp`, `*.cc`, `*.h`, `*.hpp`) with clang-format, using the project
+  `.clang-format`.
+- CMake files (`CMakeLists.txt`, `*.cmake`) with cmake-format, using the project
+  `.cmake-format.yaml`.
 
 ```bash
 cmake --preset debug
-cmake --build --preset clang-format-check
+cmake --build --preset format-check
 ```
 
 The same check runs without configuring the project (as CI does):
 
 ```bash
-cmake -P cmake/clang_format.cmake
+cmake -P cmake/format.cmake
 ```
 
 ## Project layout

@@ -144,11 +144,11 @@
       ]
     },
     {
-      "name": "clang-format-check",
+      "name": "format-check",
       "inherits": "default-build",
       "configurePreset": "debug",
       "targets": [
-        "clang-format-check"
+        "format-check"
       ]
     },
     {

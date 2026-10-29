@@ -4,7 +4,7 @@
 
 - Follow [CODE_STYLE.md](CODE_STYLE.md).
 - Build successfully (see [README.md](README.md)).
-- Run clang-format before submitting (`clang-format-check` preset).
+- Check clang-format and cmake-format before submitting (`format-check` preset).
 - Add and run unit tests (`tests` preset).
 - Run clang-tidy and fix reported issues (`clang-tidy-check` preset).
 - Run coverage and meet >= 90% on `src/` (`coverage-report` preset).
