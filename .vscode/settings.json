@@ -7,6 +7,9 @@
     "[cpp]": {
         "editor.defaultFormatter": "llvm-vs-code-extensions.vscode-clangd"
     },
+    "[cmake]": {
+        "editor.defaultFormatter": "cheshirekow.cmake-format"
+    },
     "clangd.arguments": [
         "--compile-commands-dir=build/debug",
         "--background-index",
