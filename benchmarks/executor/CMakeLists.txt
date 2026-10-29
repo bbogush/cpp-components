@@ -6,11 +6,9 @@ target_link_libraries(executor_post_benchmark PRIVATE benchmark::benchmark)
 target_link_libraries(executor_post_benchmark PRIVATE benchmark::benchmark_main)
 target_link_libraries(executor_post_benchmark PRIVATE cpp_components)
 
-set_target_properties(executor_post_benchmark PROPERTIES
-  RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}"
-)
+set_target_properties(executor_post_benchmark PROPERTIES RUNTIME_OUTPUT_DIRECTORY
+                                                         "${CMAKE_BINARY_DIR}")
 
 set(CPP_COMPONENTS_BENCHMARK_EXECUTABLES
-  ${CPP_COMPONENTS_BENCHMARK_EXECUTABLES}
-  executor_post_benchmark
-  PARENT_SCOPE)
+    ${CPP_COMPONENTS_BENCHMARK_EXECUTABLES} executor_post_benchmark
+    PARENT_SCOPE)

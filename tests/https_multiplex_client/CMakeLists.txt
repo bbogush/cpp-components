@@ -7,13 +7,15 @@ target_link_libraries(https_multiplex_client_test PRIVATE project_features)
 target_link_libraries(https_multiplex_client_test PRIVATE GTest::gtest_main)
 target_link_libraries(https_multiplex_client_test PRIVATE cpp_components)
 
-target_compile_definitions(https_multiplex_client_test PRIVATE
-  TEST_CERT_DIR="${CMAKE_CURRENT_SOURCE_DIR}/certs")
+target_compile_definitions(https_multiplex_client_test
+                           PRIVATE TEST_CERT_DIR="${CMAKE_CURRENT_SOURCE_DIR}/certs")
 
 target_link_libraries(https_multiplex_client_test PRIVATE OpenSSL::SSL)
 
-set_target_properties(https_multiplex_client_test PROPERTIES
-  RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}"
-)
+set_target_properties(https_multiplex_client_test PROPERTIES RUNTIME_OUTPUT_DIRECTORY
+                                                             "${CMAKE_BINARY_DIR}")
 
-gtest_discover_tests(https_multiplex_client_test PROPERTIES TIMEOUT 120)
+gtest_discover_tests(
+  https_multiplex_client_test
+  PROPERTIES
+  TIMEOUT 120)

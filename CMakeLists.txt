@@ -1,5 +1,8 @@
 cmake_minimum_required(VERSION 3.20)
-project(cpp-components VERSION 0.1.0 LANGUAGES CXX)
+project(
+  cpp-components
+  VERSION 0.1.0
+  LANGUAGES CXX)
 
 option(BUILD_TESTING "Build unit tests" OFF)
 option(BUILD_BENCHMARKS "Build Google Benchmark targets" OFF)
@@ -38,40 +41,36 @@ if(BUILD_BENCHMARKS)
 endif()
 
 if(ENABLE_COVERAGE AND BUILD_TESTING)
-  add_custom_target(coverage-report
-    COMMAND "${CMAKE_COMMAND}"
-            -DCOVERAGE_BINARY_DIR=${CMAKE_BINARY_DIR}
-            -DCOVERAGE_SOURCE_DIR=${CMAKE_SOURCE_DIR}
-            -P ${CMAKE_SOURCE_DIR}/cmake/coverage_report.cmake
+  add_custom_target(
+    coverage-report
+    COMMAND
+      "${CMAKE_COMMAND}" -DCOVERAGE_BINARY_DIR=${CMAKE_BINARY_DIR}
+      -DCOVERAGE_SOURCE_DIR=${CMAKE_SOURCE_DIR} -P ${CMAKE_SOURCE_DIR}/cmake/coverage_report.cmake
     WORKING_DIRECTORY "${CMAKE_BINARY_DIR}"
     COMMENT "Generating cpp_components/ coverage report (lcov CLI + HTML)"
-    USES_TERMINAL
-    VERBATIM
-  )
+    USES_TERMINAL VERBATIM)
 endif()
 
-add_custom_target(format-check
-  COMMAND "${CMAKE_COMMAND}"
-          -DFORMAT_SOURCE_DIR=${CMAKE_SOURCE_DIR}
-          -P ${CMAKE_SOURCE_DIR}/cmake/format.cmake
+add_custom_target(
+  format-check
+  COMMAND "${CMAKE_COMMAND}" -DFORMAT_SOURCE_DIR=${CMAKE_SOURCE_DIR} -P
+          ${CMAKE_SOURCE_DIR}/cmake/format.cmake
   WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
   COMMENT "Checking clang-format and cmake-format on tracked sources"
-  USES_TERMINAL
-  VERBATIM
-)
+  USES_TERMINAL VERBATIM)
 
 if(ENABLE_CLANG_TIDY)
-  set(CLANG_TIDY_JOBS 0 CACHE STRING "Parallel clang-tidy jobs (0 = auto-detect CPU count)")
+  set(CLANG_TIDY_JOBS
+      0
+      CACHE STRING "Parallel clang-tidy jobs (0 = auto-detect CPU count)")
 
-  add_custom_target(clang-tidy
-    COMMAND "${CMAKE_COMMAND}"
-            -DCLANG_TIDY_BINARY_DIR=${CMAKE_BINARY_DIR}
-            -DCLANG_TIDY_SOURCE_DIR=${CMAKE_SOURCE_DIR}
-            -DCLANG_TIDY_JOBS=${CLANG_TIDY_JOBS}
-            -P ${CMAKE_SOURCE_DIR}/cmake/clang_tidy.cmake
+  add_custom_target(
+    clang-tidy
+    COMMAND
+      "${CMAKE_COMMAND}" -DCLANG_TIDY_BINARY_DIR=${CMAKE_BINARY_DIR}
+      -DCLANG_TIDY_SOURCE_DIR=${CMAKE_SOURCE_DIR} -DCLANG_TIDY_JOBS=${CLANG_TIDY_JOBS} -P
+      ${CMAKE_SOURCE_DIR}/cmake/clang_tidy.cmake
     WORKING_DIRECTORY "${CMAKE_BINARY_DIR}"
     COMMENT "Running clang-tidy on cpp_components/"
-    USES_TERMINAL
-    VERBATIM
-  )
+    USES_TERMINAL VERBATIM)
 endif()

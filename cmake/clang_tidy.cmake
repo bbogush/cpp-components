@@ -13,9 +13,8 @@ endif()
 
 set(_compile_commands "${CLANG_TIDY_BINARY_DIR}/compile_commands.json")
 if(NOT EXISTS "${_compile_commands}")
-  message(FATAL_ERROR
-    "compile_commands.json not found in ${CLANG_TIDY_BINARY_DIR}. "
-    "Enable CMAKE_EXPORT_COMPILE_COMMANDS.")
+  message(FATAL_ERROR "compile_commands.json not found in ${CLANG_TIDY_BINARY_DIR}. "
+                      "Enable CMAKE_EXPORT_COMPILE_COMMANDS.")
 endif()
 
 set(_jobs "${CLANG_TIDY_JOBS}")
@@ -29,10 +28,5 @@ endif()
 
 message(STATUS "Running clang-tidy on ${CLANG_TIDY_SOURCE_DIR}/cpp_components/ (${_jobs} jobs)")
 execute_process(
-  COMMAND "${RUN_CLANG_TIDY_EXECUTABLE}"
-          -p "${CLANG_TIDY_BINARY_DIR}"
-          -j "${_jobs}"
-          cpp_components/
-  WORKING_DIRECTORY "${CLANG_TIDY_SOURCE_DIR}"
-  COMMAND_ERROR_IS_FATAL ANY
-)
+  COMMAND "${RUN_CLANG_TIDY_EXECUTABLE}" -p "${CLANG_TIDY_BINARY_DIR}" -j "${_jobs}" cpp_components/
+  WORKING_DIRECTORY "${CLANG_TIDY_SOURCE_DIR}" COMMAND_ERROR_IS_FATAL ANY)

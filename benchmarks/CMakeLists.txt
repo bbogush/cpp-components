@@ -1,14 +1,17 @@
 include(FetchContent)
 
-set(BENCHMARK_ENABLE_TESTING OFF CACHE BOOL "" FORCE)
-set(BENCHMARK_ENABLE_GTEST_TESTS OFF CACHE BOOL "" FORCE)
+set(BENCHMARK_ENABLE_TESTING
+    OFF
+    CACHE BOOL "" FORCE)
+set(BENCHMARK_ENABLE_GTEST_TESTS
+    OFF
+    CACHE BOOL "" FORCE)
 
 FetchContent_Declare(
   googlebenchmark
   URL https://github.com/google/benchmark/archive/refs/tags/v1.9.5.tar.gz
   URL_HASH SHA256=9631341c82bac4a288bef951f8b26b41f69021794184ece969f8473977eaa340
-  DOWNLOAD_EXTRACT_TIMESTAMP TRUE
-)
+  DOWNLOAD_EXTRACT_TIMESTAMP TRUE)
 
 FetchContent_MakeAvailable(googlebenchmark)
 
@@ -22,16 +25,14 @@ set(BENCHMARK_RESULTS_DIR "${CMAKE_BINARY_DIR}/benchmark-results")
 set(_benchmark_run_commands)
 foreach(exe IN LISTS CPP_COMPONENTS_BENCHMARK_EXECUTABLES)
   list(APPEND _benchmark_run_commands COMMAND "$<TARGET_FILE:${exe}>"
-    "--benchmark_out=${BENCHMARK_RESULTS_DIR}/${exe}.json"
-    --benchmark_out_format=json)
+       "--benchmark_out=${BENCHMARK_RESULTS_DIR}/${exe}.json" --benchmark_out_format=json)
 endforeach()
 
-add_custom_target(benchmarks-report
-  COMMAND "${CMAKE_COMMAND}" -E make_directory "${BENCHMARK_RESULTS_DIR}"
-  ${_benchmark_run_commands}
+add_custom_target(
+  benchmarks-report
+  COMMAND "${CMAKE_COMMAND}" -E make_directory "${BENCHMARK_RESULTS_DIR}" ${_benchmark_run_commands}
   DEPENDS ${CPP_COMPONENTS_BENCHMARK_EXECUTABLES}
   WORKING_DIRECTORY "${CMAKE_BINARY_DIR}"
   USES_TERMINAL
   COMMENT "Running all Google Benchmark targets"
-  VERBATIM
-)
+  VERBATIM)
