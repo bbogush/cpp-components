@@ -8,6 +8,14 @@ if(NOT CMAKE_FORMAT_EXECUTABLE)
   message(FATAL_ERROR "cmake-format is required for format-check")
 endif()
 
+find_program(NPX_EXECUTABLE npx)
+if(NOT NPX_EXECUTABLE)
+  message(FATAL_ERROR "npx (Node.js) is required to run prettier for format-check")
+endif()
+
+# Pinned so local and CI runs give the same results
+set(PRETTIER_VERSION 3.3.3)
+
 find_package(Git QUIET)
 if(NOT GIT_EXECUTABLE)
   message(FATAL_ERROR "git is required to list the files to check")
@@ -33,8 +41,9 @@ endfunction()
 
 list_tracked_files(cxx_files "*.cpp" "*.cc" "*.h" "*.hpp")
 list_tracked_files(cmake_files "CMakeLists.txt" "*/CMakeLists.txt" "*.cmake")
+list_tracked_files(prettier_files "*.json" "*.yml" "*.yaml" "*.md")
 
-# Runs both checks before failing so one run reports every violation
+# Runs all checks before failing so one run reports every violation
 set(failed "")
 
 list(LENGTH cxx_files file_count)
@@ -55,6 +64,16 @@ execute_process(
   RESULT_VARIABLE result)
 if(NOT result EQUAL 0)
   list(APPEND failed cmake-format)
+endif()
+
+list(LENGTH prettier_files file_count)
+message(STATUS "Checking formatting of ${file_count} files with prettier ${PRETTIER_VERSION}")
+execute_process(
+  COMMAND "${NPX_EXECUTABLE}" --yes prettier@${PRETTIER_VERSION} --check ${prettier_files}
+  WORKING_DIRECTORY "${FORMAT_SOURCE_DIR}"
+  RESULT_VARIABLE result)
+if(NOT result EQUAL 0)
+  list(APPEND failed prettier)
 endif()
 
 if(failed)

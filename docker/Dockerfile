@@ -13,12 +13,14 @@ RUN apt-get update && apt-get install -y \
     cmake \
     git \
     lcov \
+    ninja-build \
+    nodejs \
+    npm \
     libboost-dev \
     libboost-system-dev \
     libcurl4-openssl-dev \
     libssl-dev \
-    liburing-dev \
-    ninja-build
+    liburing-dev
 
 # Use a non-root user ubuntu
 ARG USERNAME=ubuntu

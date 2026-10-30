@@ -16,13 +16,15 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      # Ubuntu 24.04 packages, matching the Docker image toolchain
+      # Ubuntu 24.04 packages, matching the Docker image toolchain; Node/npx is preinstalled on the
+      # runner and fetches the pinned prettier
       - name: Install formatters
         run: |
           sudo apt-get update
           sudo apt-get install -y clang-format cmake-format
           clang-format --version
           cmake-format --version
+          npx --version
 
       # Same check as the format-check preset, without configuring the project
       - name: Check formatting
