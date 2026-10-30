@@ -74,7 +74,9 @@ jobs:
         if: steps.baseline.outputs.run_id != ''
         env:
           BASELINE_RUN_ID: ${{ steps.baseline.outputs.run_id }}
-          BASELINE_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ steps.baseline.outputs.run_id }}
+          BASELINE_URL:
+            ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{
+            steps.baseline.outputs.run_id }}
         run: |
           python3 - <<'EOF'
           import json, os, pathlib, sys

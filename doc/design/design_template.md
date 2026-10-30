@@ -1,18 +1,19 @@
 # [Feature/Project Name] - Design Document
 
-| | |
-|---|---|
-| **Author(s)** | |
-| **Status** | Draft / In Review / Approved / Implemented |
-| **Date** | |
-| **Related Issues/Tickets** | |
-| **Revision** | v0.1 |
+|                            |                                            |
+| -------------------------- | ------------------------------------------ |
+| **Author(s)**              |                                            |
+| **Status**                 | Draft / In Review / Approved / Implemented |
+| **Date**                   |                                            |
+| **Related Issues/Tickets** |                                            |
+| **Revision**               | v0.1                                       |
 
 ---
 
 ## General Rules
 
-- Use only ASCII characters. Non-ASCII symbols are hard to type, search, and diff, and may render inconsistently across editors and terminals.
+- Use only ASCII characters. Non-ASCII symbols are hard to type, search, and diff, and may render
+  inconsistently across editors and terminals.
 
 ---
 
@@ -57,13 +58,15 @@
 
 ## Summary
 
-One or two paragraphs describing what this feature/project does and why it matters. Should be understandable by someone outside the immediate team.
+One or two paragraphs describing what this feature/project does and why it matters. Should be
+understandable by someone outside the immediate team.
 
 ---
 
 ## Motivation / Problem Statement
 
 Keep this section short. It should answer:
+
 - What problem are we solving?
 - Why does it need solving now?
 - What happens if we don't do this?
@@ -74,8 +77,8 @@ Keep this section short. It should answer:
 
 Define every non-obvious term used in this document.
 
-| Term | Definition |
-|------|------------|
+| Term     | Definition     |
+| -------- | -------------- |
 | `<term>` | `<definition>` |
 
 Rule: any term that is not universally obvious must appear here before use elsewhere.
@@ -84,12 +87,17 @@ Rule: any term that is not universally obvious must appear here before use elsew
 
 ## Background / Context
 
-Relevant existing systems, prior functionality, related components, and any domain knowledge a reviewer needs to evaluate the design. Extend [Motivation / Problem Statement](#motivation--problem-statement) here; keep the motivation section short and put the detail in this section.
+Relevant existing systems, prior functionality, related components, and any domain knowledge a
+reviewer needs to evaluate the design. Extend
+[Motivation / Problem Statement](#motivation--problem-statement) here; keep the motivation section
+short and put the detail in this section.
 
 - Related protocols, standards, or domain concepts a reviewer needs to understand.
-- How the problem manifests today (bug, missing capability, technical debt) and affected code paths or components.
+- How the problem manifests today (bug, missing capability, technical debt) and affected code paths
+  or components.
 - Existing systems in this repo that interact with or constrain the design.
-- Prior functionality: how similar libraries, products, or internal components solve the same problem.
+- Prior functionality: how similar libraries, products, or internal components solve the same
+  problem.
 - Relevant history, constraints, or prior attempts that impact this design.
 
 ---
@@ -102,28 +110,29 @@ Each requirement should be independently testable.
 
 Example:
 
-| ID | Requirement |
-|----|-------------|
+| ID   | Requirement                                                    |
+| ---- | -------------------------------------------------------------- |
 | FR-1 | The system shall validate configuration before initialization. |
-| FR-2 | The system shall reject duplicate identifiers. |
-| FR-3 | The system shall support incremental updates. |
+| FR-2 | The system shall reject duplicate identifiers.                 |
+| FR-3 | The system shall support incremental updates.                  |
 
 ### Non-Functional Requirements
 
-| Category | Target |
-|----------|--------|
-| **Performance** | Latency/throughput targets, hot-path constraints. |
-| **Memory** | Budget, allocation patterns (stack vs heap), footprint limits. |
-| **Concurrency/Thread-safety** | Expected threading model. |
-| **Portability** | Target platforms/compilers (e.g., GCC/Clang/MSVC, Linux/Windows/embedded). |
-| **ABI/API stability** | Is this a public API? Versioning concerns? |
-| **Real-time constraints** | If applicable (no dynamic allocation, bounded execution time, etc.). |
+| Category                      | Target                                                                     |
+| ----------------------------- | -------------------------------------------------------------------------- |
+| **Performance**               | Latency/throughput targets, hot-path constraints.                          |
+| **Memory**                    | Budget, allocation patterns (stack vs heap), footprint limits.             |
+| **Concurrency/Thread-safety** | Expected threading model.                                                  |
+| **Portability**               | Target platforms/compilers (e.g., GCC/Clang/MSVC, Linux/Windows/embedded). |
+| **ABI/API stability**         | Is this a public API? Versioning concerns?                                 |
+| **Real-time constraints**     | If applicable (no dynamic allocation, bounded execution time, etc.).       |
 
 ---
 
 ## Design Scope
 
-Describe what this design covers, what it deliberately excludes, and any assumptions or constraints that influence the design.
+Describe what this design covers, what it deliberately excludes, and any assumptions or constraints
+that influence the design.
 
 ### In Scope
 
@@ -147,7 +156,9 @@ Describe what this design covers, what it deliberately excludes, and any assumpt
 
 ## High-Level Design
 
-Describe the big picture: components, responsibilities, and relationships. Include a diagram (component, sequence, or class) of the major building blocks, as Mermaid, ASCII art, or a linked image. For example:
+Describe the big picture: components, responsibilities, and relationships. Include a diagram
+(component, sequence, or class) of the major building blocks, as Mermaid, ASCII art, or a linked
+image. For example:
 
 ```mermaid
 flowchart LR
@@ -160,13 +171,14 @@ flowchart LR
 ### Components
 
 | Component | Responsibility | Depends On |
-|---|---|---|
-| `ClassA` | | |
-| `ClassB` | | |
+| --------- | -------------- | ---------- |
+| `ClassA`  |                |            |
+| `ClassB`  |                |            |
 
 ### Data Flow
 
 Describes how data moves through the system. It should answer:
+
 - Where does the data come from?
 - Which components process it?
 - How is it transformed?
@@ -196,16 +208,17 @@ flowchart LR
 
 ### Public API
 
-Describe the outward-facing API at a conceptual level. Detailed signatures belong in [Types And Interfaces](#types-and-interfaces).
+Describe the outward-facing API at a conceptual level. Detailed signatures belong in
+[Types And Interfaces](#types-and-interfaces).
 
-| API surface | Consumers | Stability |
-|-------------|-----------|-----------|
+| API surface                           | Consumers       | Stability                        |
+| ------------------------------------- | --------------- | -------------------------------- |
 | `<class / free function / namespace>` | `<who uses it>` | experimental / stable / internal |
 
 ### Configuration And Runtime Options
 
-| Option | Type | Default | Description |
-|--------|------|---------|-------------|
+| Option   | Type                              | Default     | Description  |
+| -------- | --------------------------------- | ----------- | ------------ |
 | `<name>` | CMake option / env var / CLI flag | `<default>` | `<behavior>` |
 
 ---
@@ -262,6 +275,7 @@ For every non-trivial algorithm document:
 ### Error Handling Strategy
 
 Failure modes and recovery behavior:
+
 - Expected errors
 - Unexpected errors
 - Logging strategy
@@ -274,6 +288,7 @@ Failure modes and recovery behavior:
 ## Alternatives Considered
 
 ### Option A
+
 - Pros
 - Cons
 - Reason rejected
@@ -282,8 +297,8 @@ Failure modes and recovery behavior:
 
 ## Dependencies
 
-| Dependency | Version | Source | License | Why needed |
-|------------|---------|--------|---------|------------|
+| Dependency  | Version     | Source                                | License     | Why needed |
+| ----------- | ----------- | ------------------------------------- | ----------- | ---------- |
 | `<library>` | `<version>` | `<FetchContent / system / submodule>` | `<License>` | `<reason>` |
 
 Note impact on build time, binary size, and security update process.
@@ -293,6 +308,7 @@ Note impact on build time, binary size, and security update process.
 ## Performance Considerations
 
 Document allocations, hot paths, cache behavior, and regressions to watch for:
+
 - Startup time
 - Memory usage
 - Latency
@@ -331,7 +347,8 @@ Document allocations, hot paths, cache behavior, and regressions to watch for:
 
 ## Risks
 
-Known or likely downsides introduced by this design. For each item below, describe whether it applies, expected magnitude, and mitigations.
+Known or likely downsides introduced by this design. For each item below, describe whether it
+applies, expected magnitude, and mitigations.
 
 - Increased memory usage
 - Longer startup
@@ -361,5 +378,5 @@ Known or likely downsides introduced by this design. For each item below, descri
 ## Related Documents
 
 | Document | Link |
-|----------|------|
-| | |
+| -------- | ---- |
+|          |      |

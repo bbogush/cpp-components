@@ -33,17 +33,18 @@ Include headers with the `cpp_components/` prefix:
 #include "cpp_components/executor/executor.h"
 ```
 
-The consumer must provide Boost, OpenSSL, libcurl, and liburing (same packages as this project's Docker image).
+The consumer must provide Boost, OpenSSL, libcurl, and liburing (same packages as this project's
+Docker image).
 
 ## Development environment
 
 Docker provides a consistent build environment. Scripts live in `docker/`:
 
-| Script | Purpose |
-|--------|---------|
-| `docker_run.sh` | Start an interactive shell (builds the image on first run) |
-| `docker_build.sh` | Rebuild the `cpp-env` image |
-| `docker_clean.sh` | Stop containers and remove the `cpp-env` image |
+| Script            | Purpose                                                    |
+| ----------------- | ---------------------------------------------------------- |
+| `docker_run.sh`   | Start an interactive shell (builds the image on first run) |
+| `docker_build.sh` | Rebuild the `cpp-env` image                                |
+| `docker_clean.sh` | Stop containers and remove the `cpp-env` image             |
 
 Start the environment from the project root:
 
@@ -61,7 +62,11 @@ Clean up when done:
 
 ## VS Code Dev Containers
 
-As an alternative to starting Docker manually, VS Code can configure the environment automatically using the [Dev Containers](https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.remote-containers) extension. It opens the project in the same Docker image and installs the C++, CMake and Prettier extensions.
+As an alternative to starting Docker manually, VS Code can configure the environment automatically
+using the
+[Dev Containers](https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.remote-containers)
+extension. It opens the project in the same Docker image and installs the C++, CMake and Prettier
+extensions.
 
 1. Open the project in VS Code
 2. **Ctrl+Shift+P** -> **Dev Containers: Reopen in Container**
@@ -72,16 +77,16 @@ The container uses `docker/Dockerfile` (same as `docker_run.sh`).
 
 CMake is the build system. Presets are defined in `CMakePresets.json`:
 
-| Preset | Output directory | Description |
-|--------|------------------|-------------|
-| `release` | `build/release` | Optimized build |
-| `relwithdebinfo` | `build/relwithdebinfo` | Optimized build with debug symbols and frame pointers |
-| `debug` | `build/debug` | Unoptimized build with debug symbols |
-| `asan` | `build/asan` | Sanitizer-instrumented build |
-| `tests` | `build/tests` | Inherits `asan` with unit tests enabled |
-| `coverage` | `build/coverage` | Inherits `debug` with tests and `cpp_components/` coverage instrumentation |
-| `clang-tidy` | `build/clang-tidy` | Inherits `debug` with static analysis on `cpp_components/` |
-| `benchmarks` | `build/benchmarks` | Inherits `relwithdebinfo` with Google Benchmark targets enabled |
+| Preset           | Output directory       | Description                                                                |
+| ---------------- | ---------------------- | -------------------------------------------------------------------------- |
+| `release`        | `build/release`        | Optimized build                                                            |
+| `relwithdebinfo` | `build/relwithdebinfo` | Optimized build with debug symbols and frame pointers                      |
+| `debug`          | `build/debug`          | Unoptimized build with debug symbols                                       |
+| `asan`           | `build/asan`           | Sanitizer-instrumented build                                               |
+| `tests`          | `build/tests`          | Inherits `asan` with unit tests enabled                                    |
+| `coverage`       | `build/coverage`       | Inherits `debug` with tests and `cpp_components/` coverage instrumentation |
+| `clang-tidy`     | `build/clang-tidy`     | Inherits `debug` with static analysis on `cpp_components/`                 |
+| `benchmarks`     | `build/benchmarks`     | Inherits `relwithdebinfo` with Google Benchmark targets enabled            |
 
 From inside the container (or locally with CMake installed):
 
@@ -114,7 +119,9 @@ rm -rf build
 
 ## Testing
 
-Unit tests use [Google Test](https://github.com/google/googletest), fetched automatically by CMake. The `tests` preset builds in `build/tests` with `BUILD_TESTING` enabled and AddressSanitizer/UBSan instrumentation.
+Unit tests use [Google Test](https://github.com/google/googletest), fetched automatically by CMake.
+The `tests` preset builds in `build/tests` with `BUILD_TESTING` enabled and AddressSanitizer/UBSan
+instrumentation.
 
 ```bash
 cmake --preset tests
@@ -126,8 +133,8 @@ ctest --preset tests
 
 Benchmarks use [Google Benchmark](https://github.com/google/benchmark), fetched automatically by
 CMake. The `benchmarks` preset builds in `build/benchmarks` with `BUILD_BENCHMARKS` enabled and
-RelWithDebInfo (`-O3 -g -fno-omit-frame-pointer`) so timings stay optimized while
-`perf` can resolve symbols and unwind stacks.
+RelWithDebInfo (`-O3 -g -fno-omit-frame-pointer`) so timings stay optimized while `perf` can resolve
+symbols and unwind stacks.
 
 ```bash
 cmake --preset benchmarks
@@ -135,12 +142,12 @@ cmake --build --preset benchmarks
 cmake --build --preset benchmarks-report
 ```
 
-The `benchmarks-report` preset builds any missing benchmark binaries and runs them all
-(equivalent to invoking each `*_benchmark` executable under `build/benchmarks/`).
-Each benchmark runs once, and each binary writes its results to
-`build/benchmarks/benchmark-results/<binary>.json`.
+The `benchmarks-report` preset builds any missing benchmark binaries and runs them all (equivalent
+to invoking each `*_benchmark` executable under `build/benchmarks/`). Each benchmark runs once, and
+each binary writes its results to `build/benchmarks/benchmark-results/<binary>.json`.
 
 May need to disable CPU scaling:
+
 ```bash
 sudo cpupower frequency-set -g performance
 ```
@@ -157,12 +164,12 @@ sudo perf report --stdio > perf_report.txt
 ## Coverage
 
 The `coverage` preset builds the `cpp_components/` targets with GCC coverage instrumentation
-(`--coverage`) and enables the unit tests. Coverage is scoped to `cpp_components/` - the
-report filters out test sources and Google Test headers.
+(`--coverage`) and enables the unit tests. Coverage is scoped to `cpp_components/` - the report
+filters out test sources and Google Test headers.
 
-Configure, build, and run the tests to produce coverage data, then build the
-`coverage-report` preset. That step prints coverage summaries with `lcov` and
-generates an HTML report with `genhtml` (included in the Docker image):
+Configure, build, and run the tests to produce coverage data, then build the `coverage-report`
+preset. That step prints coverage summaries with `lcov` and generates an HTML report with `genhtml`
+(included in the Docker image):
 
 ```bash
 cmake --preset coverage
@@ -171,15 +178,13 @@ ctest --preset coverage
 cmake --build --preset coverage-report
 ```
 
-The last step writes an HTML report to
-`build/coverage/coverage-report/index.html`.
+The last step writes an HTML report to `build/coverage/coverage-report/index.html`.
 
 ## Clang-Tidy
 
-Static analysis uses [clang-tidy](https://clang.llvm.org/extra/clang-tidy/) with
-the project `.clang-tidy` config. Analysis is scoped to `cpp_components/` and uses
-`compile_commands.json` from the `clang-tidy` preset (included in the Docker
-image).
+Static analysis uses [clang-tidy](https://clang.llvm.org/extra/clang-tidy/) with the project
+`.clang-tidy` config. Analysis is scoped to `cpp_components/` and uses `compile_commands.json` from
+the `clang-tidy` preset (included in the Docker image).
 
 Configure, then run the `clang-tidy-check` build preset:
 
@@ -188,8 +193,8 @@ cmake --preset clang-tidy
 cmake --build --preset clang-tidy-check
 ```
 
-Files are analyzed in parallel via `run-clang-tidy`. Job count defaults to the
-CPU count; set it at configure time with `-DCLANG_TIDY_JOBS=8`:
+Files are analyzed in parallel via `run-clang-tidy`. Job count defaults to the CPU count; set it at
+configure time with `-DCLANG_TIDY_JOBS=8`:
 
 ```bash
 cmake --preset clang-tidy -DCLANG_TIDY_JOBS=8
@@ -198,11 +203,10 @@ cmake --build --preset clang-tidy-check
 
 ## Formatting
 
-The `format-check` build preset checks all git-tracked files without modifying them and fails on
-any violation:
+The `format-check` build preset checks all git-tracked files without modifying them and fails on any
+violation:
 
-- C++ files (`*.cpp`, `*.cc`, `*.h`, `*.hpp`) with clang-format, using the project
-  `.clang-format`.
+- C++ files (`*.cpp`, `*.cc`, `*.h`, `*.hpp`) with clang-format, using the project `.clang-format`.
 - CMake files (`CMakeLists.txt`, `*.cmake`) with cmake-format, using the project
   `.cmake-format.yaml`.
 - JSON, YAML and Markdown files (`*.json`, `*.yml`, `*.yaml`, `*.md`) with prettier, using the
@@ -214,8 +218,8 @@ cmake --preset debug
 cmake --build --preset format-check
 ```
 
-The same check runs without configuring the project (as the `Format` CI workflow does on every
-push and pull request to `master`):
+The same check runs without configuring the project (as the `Format` CI workflow does on every push
+and pull request to `master`):
 
 ```bash
 cmake -P cmake/format.cmake

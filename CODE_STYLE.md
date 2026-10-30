@@ -1,6 +1,7 @@
 # C++ Code Style Guide
 
-This document defines the coding style for this C++ project. The goal is **readability, consistency, and safety**.
+This document defines the coding style for this C++ project. The goal is **readability, consistency,
+and safety**.
 
 ---
 
@@ -142,13 +143,15 @@ This document defines the coding style for this C++ project. The goal is **reada
 ## C++ Version
 
 - Target **C++20**.
-- Avoid non-standard language extensions unless approved; see [Nonstandard Extensions](#nonstandard-extensions).
+- Avoid non-standard language extensions unless approved; see
+  [Nonstandard Extensions](#nonstandard-extensions).
 
 ---
 
 ## Header Files
 
-- Every `.cpp` file should have a matching `.h` file when it defines reusable APIs (tests and tiny `main()` files are exceptions).
+- Every `.cpp` file should have a matching `.h` file when it defines reusable APIs (tests and tiny
+  `main()` files are exceptions).
 - Use `*.h` and `*.cpp` extensions.
 - Use `snake_case` for file names.
 - Every file must include the project license header.
@@ -156,8 +159,10 @@ This document defines the coding style for this C++ project. The goal is **reada
 ### Self-contained Headers
 
 - Use `#include <...>` for C/C++ standard library headers; `#include "..."` for project headers.
-- Headers must compile on their own - include only what they need; put other includes in `.cpp` files.
-- Expose only the module's public variables, types, and functions; keep implementation details in `.cpp` files.
+- Headers must compile on their own - include only what they need; put other includes in `.cpp`
+  files.
+- Expose only the module's public variables, types, and functions; keep implementation details in
+  `.cpp` files.
 - Use the same license header as the rest of the project.
 - Do not use `.inl.h` split headers; put template/inline definitions in the header when required.
 
@@ -245,7 +250,8 @@ void register_type(const ExpensiveType &value);
 ### Defining Functions in Header Files
 
 - Define functions in headers only when `inline`, `constexpr`, or templates require it.
-- Avoid non-trivial function bodies in headers; keep public inline bodies short (roughly <=10 lines) and put larger bodies in `.cpp` files.
+- Avoid non-trivial function bodies in headers; keep public inline bodies short (roughly <=10 lines)
+  and put larger bodies in `.cpp` files.
 
 ```cpp
 // OK in header
@@ -298,8 +304,9 @@ Separate groups with a blank line; sort alphabetically within each group.
 - Do not use `using namespace` in headers.
 - Do not use inline namespaces.
 - Close namespaces with a comment.
-- Wrap the entire source file after includes, forward declarations of classes from other namespaces and defines.
-- Prefer single-line nested namespaces. 
+- Wrap the entire source file after includes, forward declarations of classes from other namespaces
+  and defines.
+- Prefer single-line nested namespaces.
 
 ```cpp
 // my_component.h
@@ -335,7 +342,8 @@ void MyComponent::foo()
 
 ### Internal Linkage
 
-- Use anonymous namespaces for functions, variables, and custom types that are not referenced outside the file.
+- Use anonymous namespaces for functions, variables, and custom types that are not referenced
+  outside the file.
 - Prefer anonymous namespaces over `static`.
 - Do not use anonymous namespaces in headers.
 
@@ -382,7 +390,8 @@ for (i = 0; i < jobs; ++i) {
 
 ### Static and Global Variables
 
-- Avoid any dynamic initialization of a global/static object that depends on another non-trivial global/static object in a different translation unit.
+- Avoid any dynamic initialization of a global/static object that depends on another non-trivial
+  global/static object in a different translation unit.
 
 ```cpp
 // OK - trivial
@@ -415,7 +424,8 @@ const std::string g_config = "project";
 const std::string g_prefix = g_config + ":";
 ```
 
-- Avoid global/file-local static objects whose destructors depend on other non-trivially destructible global/file-local static objects.
+- Avoid global/file-local static objects whose destructors depend on other non-trivially
+  destructible global/file-local static objects.
 
 ```cpp
 // OK - no external dependencies
@@ -456,9 +466,11 @@ thread_local Parser parser;
 std::unordered_map<std::thread::id, Parser> data;
 ```
 
-- Avoid any dynamic initialization of a `thread_local` object that depends on another non-trivial `thread_local` object in a different translation unit.
+- Avoid any dynamic initialization of a `thread_local` object that depends on another non-trivial
+  `thread_local` object in a different translation unit.
 
-- Avoid `thread_local` objects whose destructors depend on other non-trivially destructible `thread_local` objects in different translation units.
+- Avoid `thread_local` objects whose destructors depend on other non-trivially destructible
+  `thread_local` objects in different translation units.
 
 ---
 
@@ -468,7 +480,8 @@ std::unordered_map<std::thread::id, Parser> data;
 
 - Avoid virtual calls in constructors.
 - Keep constructors lightweight.
-- Use factories or `init()` for work that can fail (this project does not use exceptions as primary error flow).
+- Use factories or `init()` for work that can fail (this project does not use exceptions as primary
+  error flow).
 
 ```cpp
 // OK
@@ -492,7 +505,8 @@ Foo::Foo()
 
 - Mark single-argument constructors and conversion operators `explicit`.
 - Copy/move constructors should stay non-`explicit`.
-- Constructor with single std::initializer_list parameter should omit `explicit`, in order to support copy-initialization (e.g., `MyType m = {1, 2};`).
+- Constructor with single std::initializer_list parameter should omit `explicit`, in order to
+  support copy-initialization (e.g., `MyType m = {1, 2};`).
 
 ```cpp
 class Buffer {
@@ -578,7 +592,8 @@ public:
 ### Operator Overloading
 
 - Overload only when meaning matches built-in operators (`==`, `<<`, etc.).
-- Do not overload `&&`, `||`, `,` because evaluation order does not match semantics of the built-in operators.
+- Do not overload `&&`, `||`, `,` because evaluation order does not match semantics of the built-in
+  operators.
 - Do not overload unary `&` because the meaning depends on overload declaration visibility.
 
 ### Access Control
@@ -618,7 +633,8 @@ private:
 - Keep source (.cpp) definition order consistent with the class declaration in the header.
 - Define constructors, destructors, and public member functions first.
 - Define protected and private member functions after all public member functions.
-- Within each access level, order function definitions top-down: a caller appears before its callees so the code reads naturally from high-level behavior to low-level details.
+- Within each access level, order function definitions top-down: a caller appears before its callees
+  so the code reads naturally from high-level behavior to low-level details.
 
 ```cpp
 // foo.h
@@ -675,7 +691,8 @@ void Foo::disconnect()
 
 ### Inputs and Outputs
 
-- Prefer output parameters over return values. Return `std::error_code` for success/failure status, or return data when the operation cannot fail.
+- Prefer output parameters over return values. Return `std::error_code` for success/failure status,
+  or return data when the operation cannot fail.
 - Inputs: pass by value (cheap copies) or `const &` (read-only).
 - Outputs: non-optional outputs use references; optional outputs use pointers.
 - Place input arguments before output arguments.
@@ -767,7 +784,8 @@ auto x = (double)value;
 
 ### Streams
 
-- Prefer alternative facilities over streams for formatting, conversions, and logging due to performance overhead and limited control over formatting.
+- Prefer alternative facilities over streams for formatting, conversions, and logging due to
+  performance overhead and limited control over formatting.
 
 ```cpp
 // OK
@@ -795,7 +813,8 @@ for (auto it = v.begin(); it != v.end(); ++it) {}
 
 ### Use of const
 
-- Use `const` on parameters, locals (when helpful), and member functions that do not mutate logical state.
+- Use `const` on parameters, locals (when helpful), and member functions that do not mutate logical
+  state.
 - Do not use `const` for by-value parameters.
 
 ```cpp
@@ -845,7 +864,8 @@ size_t count = vec.size();
 
 ### Architecture Portability
 
-- Use type-safe numeric formatting libraries like `std::format` instead of the `printf` family of functions.
+- Use type-safe numeric formatting libraries like `std::format` instead of the `printf` family of
+  functions.
 - Use `uintptr_t` to store memory addresses as integers.
 - Use portable floating point types; avoid `long double`.
 - Use portable integer types; avoid `short`, `long`, and `long long`.
@@ -862,7 +882,8 @@ uint64_t my_mask { uint64_t{ 3 } << 48 };
 - Avoid macros for constants and functions; use `constexpr` and `inline`.
 - Reserve macros for include guards and conditional compilation.
 - When a macro is required:
-  - ALL_CAPS name with optional `_`; same spacing as functions (no space after macro name in `#define NAME(`).
+  - ALL*CAPS name with optional
+    `*`; same spacing as functions (no space after macro name in `#define NAME(`).
   - Parenthesize every argument and the full expansion.
   - Multi-statement macros use `do { ... } while (0)`.
   - Prefer `#if defined(X)` / `#if !defined(X)` over `#ifdef` / `#ifndef`.
@@ -961,7 +982,8 @@ memset(&data, 0, sizeof(data));
 
 ### Type Deduction (including auto)
 
-- Use type deduction only to make the code clearer or safer, and do not use it merely to avoid the inconvenience of writing an explicit type.
+- Use type deduction only to make the code clearer or safer, and do not use it merely to avoid the
+  inconvenience of writing an explicit type.
 
 #### Function template argument deduction
 
@@ -983,7 +1005,8 @@ Widget &widget = *it->second;
 
 #### Function parameter type deduction
 
-- Do not use auto parameters in non-lambda functions. Use named template parameters instead, because they are more explicit about the fact that the function is a template.
+- Do not use auto parameters in non-lambda functions. Use named template parameters instead, because
+  they are more explicit about the fact that the function is a template.
 
 ```cpp
 // OK
@@ -1021,7 +1044,8 @@ std::vector names = { "a", "b" };
 
 ### Designated Initializers
 
-- Use designated initializers only in the form that is compatible with the C++20 standard: with initializers in the same order as the corresponding fields appear in the struct definition.
+- Use designated initializers only in the form that is compatible with the C++20 standard: with
+  initializers in the same order as the corresponding fields appear in the struct definition.
 
 ```cpp
 // OK
@@ -1049,7 +1073,8 @@ Config cfg {
 
 ### Coroutines
 
-- Use only coroutine libraries that have been approved for project-wide use. Do not roll your own promise or awaitable types.
+- Use only coroutine libraries that have been approved for project-wide use. Do not roll your own
+  promise or awaitable types.
 
 ### Disallowed standard library features
 
@@ -1063,7 +1088,10 @@ Config cfg {
 
 ### Nonstandard Extensions
 
-- Avoid compiler-specific extensions such as GCC's `__attribute__`, intrinsic functions `__builtin_popcount` or SIMD, `#pragma`, inline assembly, `__COUNTER__`, `__PRETTY_FUNCTION__`, compound statement expressions (e.g., `foo = ({ int x; Bar(&x); x }`), variable-length arrays, `alloca()`, the "Elvis Operator" `a ? : b`.
+- Avoid compiler-specific extensions such as GCC's `__attribute__`, intrinsic functions
+  `__builtin_popcount` or SIMD, `#pragma`, inline assembly, `__COUNTER__`, `__PRETTY_FUNCTION__`,
+  compound statement expressions (e.g., `foo = ({ int x; Bar(&x); x }`), variable-length arrays,
+  `alloca()`, the "Elvis Operator" `a ? : b`.
 - Wrap unavoidable extensions in portability macros or headers.
 
 ```cpp
@@ -1157,7 +1185,8 @@ default:
 
 ### Type Names
 
-- Type names (classes, structs, type aliases, enum types, and type template parameters) start with a capital letter and have a capital letter for each new word, with no underscores: MyClass, MyEnum.
+- Type names (classes, structs, type aliases, enum types, and type template parameters) start with a
+  capital letter and have a capital letter for each new word, with no underscores: MyClass, MyEnum.
 
 ```cpp
 // OK
@@ -1174,7 +1203,8 @@ enum class MyEnum {
 
 ### Variable Names
 
-- Use `snake_case` (all lowercase, with underscores between words) for the names of variables (including function parameters) and data members.
+- Use `snake_case` (all lowercase, with underscores between words) for the names of variables
+  (including function parameters) and data members.
 - Do not encode type in the name (`i32_count`).
 
 ```cpp
@@ -1697,7 +1727,8 @@ for (i = 0; ret = my_func(); i++) {}
 - Do not indent `case` / `default` labels.
 - Indent the body of each `case` / `default` once.
 - No space before `:`; one space after `:` when the case body is on the same line.
-- If local variables are required inside a `case`, wrap the body in `{ }` with `{` on the same line as `case`; put `break` inside the braces.
+- If local variables are required inside a `case`, wrap the body in `{ }` with `{` on the same line
+  as `case`; put `break` inside the braces.
 
 ```cpp
 // OK
@@ -1821,7 +1852,8 @@ if (a > b &&
 - No parentheses around return values unless needed for clarity.
 - Pointer functions return `nullptr` on failure.
 - Functions that can fail return `std::error_code`; a default-constructed value means success.
-- `bool` return types are for predicates (`is_*`, `has_*`) - return `true` / `false` directly, not `0` / `1`. Do not use `bool` for general success/failure status.
+- `bool` return types are for predicates (`is_*`, `has_*`) - return `true` / `false` directly, not
+  `0` / `1`. Do not use `bool` for general success/failure status.
 - No bare `return;` at the end of `void` functions.
 - Exit early on errors and failed preconditions.
 
@@ -1975,7 +2007,9 @@ private:
 
 ### Constructor Initializer Lists
 
-- Put `:` and the initializer list on the same line as the constructor declaration when they fit within the column limit; otherwise put `:` at the end of the declaration line and wrap the initializers.
+- Put `:` and the initializer list on the same line as the constructor declaration when they fit
+  within the column limit; otherwise put `:` at the end of the declaration line and wrap the
+  initializers.
 
 ```cpp
 // OK
@@ -2004,7 +2038,8 @@ class Socket {};
 
 #### Operators
 
-- Single space before and after assignment, binary, and ternary operators (`=`, `+`, `-`, `<`, `>`, `*`, `/`, `%`, `|`, `&`, `^`, `<=`, `>=`, `==`, `!=`, `?`, `:`).
+- Single space before and after assignment, binary, and ternary operators (`=`, `+`, `-`, `<`, `>`,
+  `*`, `/`, `%`, `|`, `&`, `^`, `<=`, `>=`, `==`, `!=`, `?`, `:`).
 - Do not align operators across lines.
 
 ```cpp

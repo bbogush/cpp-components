@@ -126,9 +126,7 @@
       "name": "coverage-report",
       "inherits": "default-build",
       "configurePreset": "coverage",
-      "targets": [
-        "coverage-report"
-      ]
+      "targets": ["coverage-report"]
     },
     {
       "name": "clang-tidy",
@@ -139,17 +137,13 @@
       "name": "clang-tidy-check",
       "inherits": "default-build",
       "configurePreset": "clang-tidy",
-      "targets": [
-        "clang-tidy"
-      ]
+      "targets": ["clang-tidy"]
     },
     {
       "name": "format-check",
       "inherits": "default-build",
       "configurePreset": "debug",
-      "targets": [
-        "format-check"
-      ]
+      "targets": ["format-check"]
     },
     {
       "name": "benchmarks",
@@ -160,9 +154,7 @@
       "name": "benchmarks-report",
       "inherits": "default-build",
       "configurePreset": "benchmarks",
-      "targets": [
-        "benchmarks-report"
-      ]
+      "targets": ["benchmarks-report"]
     }
   ],
   "testPresets": [

@@ -15,13 +15,15 @@
 - Subject line format: `<area>: <summary>`
   - `<area>` is the component/module/subsystem/tool affected, in lowercase: `my_component`, `build`,
     `ci`, `docker`.
-  - `<summary>` is in the imperative mood ("add", not "added" or "adds"),
-    lowercase, with no trailing period. Avoid vague descriptions such as "update", "fix bug", or "changes".
+  - `<summary>` is in the imperative mood ("add", not "added" or "adds"), lowercase, with no
+    trailing period. Avoid vague descriptions such as "update", "fix bug", or "changes".
 - The subject line is at most 72 characters.
 - Leave one blank line after the subject. Wrap the body at 72 characters.
-- The body explains *why* the change is necessary, how it fixes the problem and, if relevant, the alternatives considered.
+- The body explains _why_ the change is necessary, how it fixes the problem and, if relevant, the
+  alternatives considered.
 - Reference issues in the body: `Refs #123`.
 - Example:
+
   ```text
   my_component: add json serialization method
 
@@ -30,8 +32,7 @@
 
 ## Pull requests
 
-- Name branches `<area>/<short_description>`, for
-  example `my_component/add_json_translation`.
+- Name branches `<area>/<short_description>`, for example `my_component/add_json_translation`.
 - The title follows the commit subject format.
 - The description includes:
   - **Why it was done**
