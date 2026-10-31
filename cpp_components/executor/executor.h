@@ -44,7 +44,7 @@ public:
     void stop(bool is_force_stop = false);
     std::error_code set_priority(int priority);
     std::error_code get_priority(int &priority);
-    std::error_code set_cpu_affinity(int cpu_id);
+    std::error_code set_cpu_affinity(size_t cpu_id);
     int get_max_priority() const;
 
     // Wakes the executor to run the doorbell handler; call after pushing to a queue the

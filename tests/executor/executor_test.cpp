@@ -224,7 +224,8 @@ TEST(ExecutorTest, set_cpu_affinity_rejects_invalid_value)
 {
     cpp_components::executor::Executor executor {};
     ASSERT_FALSE(executor.start());
-    EXPECT_EQ(executor.set_cpu_affinity(-1), std::make_error_code(std::errc::invalid_argument));
+    EXPECT_EQ(executor.set_cpu_affinity(SIZE_MAX),
+        std::make_error_code(std::errc::invalid_argument));
     executor.stop();
 }
 

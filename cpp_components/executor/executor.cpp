@@ -149,9 +149,9 @@ std::error_code Executor::get_priority(int &priority)
     return {};
 }
 
-std::error_code Executor::set_cpu_affinity(int cpu_id)
+std::error_code Executor::set_cpu_affinity(size_t cpu_id)
 {
-    if (cpu_id < 0) {
+    if (cpu_id >= CPU_SETSIZE) {
         return std::make_error_code(std::errc::invalid_argument);
     }
 
