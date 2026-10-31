@@ -7,13 +7,13 @@ DOCKERFILE="docker/Dockerfile"
 set -e
 
 # Check if Docker is installed
-if ! command -v docker &> /dev/null; then
+if ! command -v docker &>/dev/null; then
     echo "Error: Docker is not installed."
     exit 1
 fi
 
 # Check if image exists and rebuild
-if ! docker image inspect "$IMAGE_NAME" > /dev/null 2>&1; then
+if ! docker image inspect "$IMAGE_NAME" >/dev/null 2>&1; then
     echo "Docker image does not exist. Will build."
     docker build -t "$IMAGE_NAME" -f "$DOCKERFILE" .
     echo "Docker image built successfully."
@@ -25,4 +25,3 @@ docker run --rm -it \
     -v "$PWD:/project" \
     "$IMAGE_NAME" \
     bash
-

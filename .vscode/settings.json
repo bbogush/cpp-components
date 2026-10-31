@@ -22,6 +22,9 @@
   "[markdown]": {
     "editor.defaultFormatter": "esbenp.prettier-vscode"
   },
+  "[shellscript]": {
+    "editor.defaultFormatter": "mkhl.shfmt"
+  },
   "clangd.arguments": [
     "--compile-commands-dir=build/debug",
     "--background-index",

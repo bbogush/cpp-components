@@ -24,12 +24,12 @@ jobs:
             build-essential \
             clang-tidy \
             cmake \
+            ninja-build \
             libboost-dev \
             libboost-system-dev \
             libcurl4-openssl-dev \
             libssl-dev \
-            liburing-dev \
-            ninja-build
+            liburing-dev
 
       - name: Configure
         run: cmake --preset clang-tidy

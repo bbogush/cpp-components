@@ -21,9 +21,10 @@ jobs:
       - name: Install formatters
         run: |
           sudo apt-get update
-          sudo apt-get install -y clang-format cmake-format
+          sudo apt-get install -y clang-format cmake-format shfmt
           clang-format --version
           cmake-format --version
+          shfmt --version
           npx --version
 
       # Same check as the format-check preset, without configuring the project

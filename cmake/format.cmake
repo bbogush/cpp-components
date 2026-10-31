@@ -13,6 +13,11 @@ if(NOT NPX_EXECUTABLE)
   message(FATAL_ERROR "npx (Node.js) is required to run prettier for format-check")
 endif()
 
+find_program(SHFMT_EXECUTABLE shfmt)
+if(NOT SHFMT_EXECUTABLE)
+  message(FATAL_ERROR "shfmt is required for format-check")
+endif()
+
 # Pinned so local and CI runs give the same results
 set(PRETTIER_VERSION 3.3.3)
 
@@ -42,6 +47,7 @@ endfunction()
 list_tracked_files(cxx_files "*.cpp" "*.cc" "*.h" "*.hpp")
 list_tracked_files(cmake_files "CMakeLists.txt" "*/CMakeLists.txt" "*.cmake")
 list_tracked_files(prettier_files "*.json" "*.yml" "*.yaml" "*.md")
+list_tracked_files(shell_files "*.sh")
 
 # Runs all checks before failing so one run reports every violation
 set(failed "")
@@ -74,6 +80,17 @@ execute_process(
   RESULT_VARIABLE result)
 if(NOT result EQUAL 0)
   list(APPEND failed prettier)
+endif()
+
+# Style options come from .editorconfig, shared with the VS Code shfmt extension
+list(LENGTH shell_files file_count)
+message(STATUS "Checking formatting of ${file_count} files with ${SHFMT_EXECUTABLE}")
+execute_process(
+  COMMAND "${SHFMT_EXECUTABLE}" --diff ${shell_files}
+  WORKING_DIRECTORY "${FORMAT_SOURCE_DIR}"
+  RESULT_VARIABLE result)
+if(NOT result EQUAL 0)
+  list(APPEND failed shfmt)
 endif()
 
 if(failed)

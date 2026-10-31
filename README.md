@@ -65,8 +65,8 @@ Clean up when done:
 As an alternative to starting Docker manually, VS Code can configure the environment automatically
 using the
 [Dev Containers](https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.remote-containers)
-extension. It opens the project in the same Docker image and installs the C++, CMake and Prettier
-extensions.
+extension. It opens the project in the same Docker image and installs the C++, CMake, Prettier and
+shfmt extensions.
 
 1. Open the project in VS Code
 2. **Ctrl+Shift+P** -> **Dev Containers: Reopen in Container**
@@ -212,6 +212,8 @@ violation:
 - JSON, YAML and Markdown files (`*.json`, `*.yml`, `*.yaml`, `*.md`) with prettier, using the
   project `.prettierrc.json`. The pinned prettier version is fetched with `npx`, so Node.js is
   required (installed in the Docker image).
+- Shell scripts (`*.sh`) with shfmt, using the indentation settings from the project
+  `.editorconfig`.
 
 ```bash
 cmake --preset debug

@@ -6,7 +6,7 @@ IMAGE_NAME="cpp-env"
 set -e
 
 # Check if Docker is installed
-if ! command -v docker &> /dev/null; then
+if ! command -v docker &>/dev/null; then
     echo "Error: Docker is not installed."
     exit 1
 fi
@@ -30,7 +30,7 @@ if [ -n "$REMAINING" ]; then
 fi
 
 # Remove image
-if docker image inspect "$IMAGE_NAME" > /dev/null 2>&1; then
+if docker image inspect "$IMAGE_NAME" >/dev/null 2>&1; then
     echo "Removing Docker image."
     docker rmi "$IMAGE_NAME"
     echo "Docker image removed successfully."

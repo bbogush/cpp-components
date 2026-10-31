@@ -16,6 +16,7 @@ RUN apt-get update && apt-get install -y \
     ninja-build \
     nodejs \
     npm \
+    shfmt \
     libboost-dev \
     libboost-system-dev \
     libcurl4-openssl-dev \

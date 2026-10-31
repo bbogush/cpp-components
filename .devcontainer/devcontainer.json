@@ -12,7 +12,8 @@
         "ms-vscode.cmake-tools",
         "llvm-vs-code-extensions.vscode-clangd",
         "cheshirekow.cmake-format",
-        "esbenp.prettier-vscode"
+        "esbenp.prettier-vscode",
+        "mkhl.shfmt"
       ],
       "settings": {
         "C_Cpp.default.compilerPath": "/usr/bin/g++",

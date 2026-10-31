@@ -56,7 +56,7 @@ add_custom_target(
   COMMAND "${CMAKE_COMMAND}" -DFORMAT_SOURCE_DIR=${CMAKE_SOURCE_DIR} -P
           ${CMAKE_SOURCE_DIR}/cmake/format.cmake
   WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
-  COMMENT "Checking clang-format, cmake-format and prettier on tracked sources"
+  COMMENT "Checking clang-format, cmake-format, prettier and shfmt on tracked sources"
   USES_TERMINAL VERBATIM)
 
 if(ENABLE_CLANG_TIDY)

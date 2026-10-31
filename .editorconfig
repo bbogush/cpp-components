@@ -1,0 +1,6 @@
+root = true
+
+# Read by shfmt (CLI and the mkhl.shfmt VS Code extension)
+[*.sh]
+indent_style = space
+indent_size = 4
