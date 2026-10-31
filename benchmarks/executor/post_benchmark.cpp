@@ -21,6 +21,9 @@ constexpr auto wait_timeout = std::chrono::seconds { 5 };
 
 class PostFixture : public benchmark::Fixture {
 public:
+    using benchmark::Fixture::SetUp;
+    using benchmark::Fixture::TearDown;
+
     void SetUp(const ::benchmark::State & /*state*/) override
     {
         executor = std::make_unique<cpp_components::executor::Executor>();

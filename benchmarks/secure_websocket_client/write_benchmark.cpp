@@ -27,6 +27,9 @@ constexpr int message_count = 100000;
 
 class WriteFixture : public benchmark::Fixture {
 public:
+    using benchmark::Fixture::SetUp;
+    using benchmark::Fixture::TearDown;
+
     void SetUp(const ::benchmark::State & /*state*/) override
     {
         const auto port = start_secure_echo_server();

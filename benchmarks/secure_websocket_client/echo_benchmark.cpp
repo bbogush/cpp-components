@@ -24,6 +24,9 @@ using namespace secure_websocket_client_benchmark;
 
 class EchoFixture : public benchmark::Fixture {
 public:
+    using benchmark::Fixture::SetUp;
+    using benchmark::Fixture::TearDown;
+
     void SetUp(const ::benchmark::State & /*state*/) override
     {
         const auto port = start_secure_echo_server();
