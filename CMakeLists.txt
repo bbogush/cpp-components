@@ -14,7 +14,23 @@ if(ENABLE_CLANG_TIDY)
 endif()
 
 add_library(project_options INTERFACE)
-target_compile_options(project_options INTERFACE -Wall -Wextra -Wpedantic -Werror)
+target_compile_options(
+  project_options
+  INTERFACE -Wall
+            -Wextra
+            -Wpedantic
+            -Werror
+            -Wconversion
+            -Wsign-conversion
+            -Wnon-virtual-dtor
+            -Woverloaded-virtual
+            -Wsuggest-override
+            -Wformat=2
+            -Winit-self
+            -Wdouble-promotion
+            -Wcast-align
+            -Wmissing-declarations
+            -Wredundant-decls)
 
 if(ENABLE_COVERAGE)
   target_compile_options(project_options INTERFACE --coverage -fprofile-update=atomic)
