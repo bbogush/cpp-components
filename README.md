@@ -220,11 +220,29 @@ cmake --preset debug
 cmake --build --preset format-check
 ```
 
-The same check runs without configuring the project (as the `Format` CI workflow does on every push
-and pull request to `master`):
+or
 
 ```bash
 cmake -P cmake/format.cmake
+```
+
+VS Code formats on save when the project extensions are installed (see
+`.devcontainer/devcontainer.json`). To format from the command line:
+
+```
+clang-format -i file.cpp file.h
+```
+
+```
+cmake-format -i CMakeLists.txt
+```
+
+```
+prettier --write file.md file.json file.yaml
+```
+
+```
+shfmt -w script.sh
 ```
 
 ## Project layout
