@@ -1,4 +1,4 @@
-name: Unit Tests
+name: Unit Tests (ASan)
 
 on:
   push:
@@ -8,7 +8,7 @@ on:
   workflow_dispatch:
 
 jobs:
-  unit-tests:
+  unit-tests-asan:
     runs-on: ubuntu-24.04
     timeout-minutes: 10
 
@@ -31,10 +31,10 @@ jobs:
             liburing-dev
 
       - name: Configure
-        run: cmake --preset tests
+        run: cmake --preset tests-asan
 
       - name: Build
-        run: cmake --build --preset tests
+        run: cmake --build --preset tests-asan
 
       - name: Test
-        run: ctest --preset tests
+        run: ctest --preset tests-asan

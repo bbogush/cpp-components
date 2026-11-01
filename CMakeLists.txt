@@ -8,9 +8,23 @@ option(BUILD_TESTING "Build unit tests" OFF)
 option(BUILD_BENCHMARKS "Build Google Benchmark targets" OFF)
 option(ENABLE_COVERAGE "Instrument cpp_components/ targets for code coverage" OFF)
 option(ENABLE_CLANG_TIDY "Add clang-tidy static analysis target" OFF)
+option(ENABLE_TSAN "Relax -Werror for ThreadSanitizer-incompatible atomics" OFF)
 
 if(ENABLE_CLANG_TIDY)
   set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+endif()
+
+if(ENABLE_TSAN)
+  # Ubuntu 24.04 uses vm.mmap_rnd_bits=32. GCC TSan cannot place its shadow memory then and aborts
+  # with "unexpected memory mapping". Disable ASLR for CMake-driven runs of TSan binaries (gtest
+  # discovery and ctest).
+  add_compile_options(-Wno-error=tsan)
+  find_program(SETARCH_EXECUTABLE setarch REQUIRED)
+  execute_process(
+    COMMAND uname -m
+    OUTPUT_VARIABLE TSAN_HOST_ARCH
+    OUTPUT_STRIP_TRAILING_WHITESPACE COMMAND_ERROR_IS_FATAL ANY)
+  set(CMAKE_CROSSCOMPILING_EMULATOR "${SETARCH_EXECUTABLE};${TSAN_HOST_ARCH};-R")
 endif()
 
 add_library(project_options INTERFACE)

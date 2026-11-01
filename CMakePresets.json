@@ -53,9 +53,28 @@
       }
     },
     {
-      "name": "tests",
+      "name": "tests-asan",
       "displayName": "Tests (ASan + unit tests)",
       "inherits": "asan",
+      "cacheVariables": {
+        "BUILD_TESTING": "ON"
+      }
+    },
+    {
+      "name": "tsan",
+      "displayName": "TSan (-O1 -g -fsanitize=thread -fno-omit-frame-pointer)",
+      "inherits": "base",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug",
+        "CMAKE_CXX_FLAGS_DEBUG": "-O1 -g -fsanitize=thread -fno-omit-frame-pointer",
+        "CMAKE_EXE_LINKER_FLAGS": "-fsanitize=thread",
+        "ENABLE_TSAN": "ON"
+      }
+    },
+    {
+      "name": "tests-tsan",
+      "displayName": "Tests (TSan + unit tests)",
+      "inherits": "tsan",
       "cacheVariables": {
         "BUILD_TESTING": "ON"
       }
@@ -113,9 +132,19 @@
       "configurePreset": "asan"
     },
     {
-      "name": "tests",
+      "name": "tests-asan",
       "inherits": "default-build",
-      "configurePreset": "tests"
+      "configurePreset": "tests-asan"
+    },
+    {
+      "name": "tsan",
+      "inherits": "default-build",
+      "configurePreset": "tsan"
+    },
+    {
+      "name": "tests-tsan",
+      "inherits": "default-build",
+      "configurePreset": "tests-tsan"
     },
     {
       "name": "coverage",
@@ -159,8 +188,15 @@
   ],
   "testPresets": [
     {
-      "name": "tests",
-      "configurePreset": "tests",
+      "name": "tests-asan",
+      "configurePreset": "tests-asan",
+      "output": {
+        "outputOnFailure": true
+      }
+    },
+    {
+      "name": "tests-tsan",
+      "configurePreset": "tests-tsan",
       "output": {
         "outputOnFailure": true
       }
