@@ -50,6 +50,7 @@ std::error_code Executor::start()
     }
 
     thread_handle = thread.native_handle();
+    thread_id = thread.get_id();
     is_started.store(true, std::memory_order_release);
     return {};
 }
@@ -81,31 +82,33 @@ Executor::~Executor()
 
 void Executor::stop(bool is_force_stop)
 {
-    // Set first: the doorbell handler sees it and does not start another wait.
-    is_stopping.store(true, std::memory_order_release);
+    const bool was_stopping = is_stopping.exchange(true, std::memory_order_acq_rel);
 
-    if (!thread.joinable()) {
+    if (!is_started.load(std::memory_order_acquire)) {
         return;
     }
 
-    if (doorbell_fd >= 0) {
-        // The pending doorbell wait is outstanding work; cancel it so run() can return.
-        boost::asio::post(io_context, [this]() {
-            doorbell_armed.store(false, std::memory_order_relaxed);
-            boost::system::error_code ec;
-            doorbell.cancel(ec);
-        });
+    if (!was_stopping) {
+        if (doorbell_fd >= 0) {
+            // The pending doorbell wait is outstanding work; cancel it so run() can return.
+            boost::asio::post(io_context, [this]() {
+                doorbell_armed.store(false, std::memory_order_relaxed);
+                boost::system::error_code ec;
+                doorbell.cancel(ec);
+            });
+        }
+        work.reset();
     }
-
-    work.reset();
     if (is_force_stop) {
         io_context.stop();
     }
 
-    if (std::this_thread::get_id() == thread.get_id()) {
+    if (std::this_thread::get_id() == thread_id) {
         return;
     }
-    thread.join();
+    if (thread.joinable()) {
+        thread.join();
+    }
 }
 
 std::error_code Executor::set_priority(int priority)

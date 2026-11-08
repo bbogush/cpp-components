@@ -91,9 +91,8 @@ private:
     std::unique_ptr<boost::asio::io_context::work> work;
     std::thread thread;
 
-    // Set before the thread starts and never changed afterwards. Other threads read
-    // thread_handle after is_started, and doorbell_fd after doorbell_armed, both acquire.
     pthread_t thread_handle {};
+    std::thread::id thread_id {};
     DoorbellHandler doorbell_handler;
     int doorbell_fd = -1;
 
