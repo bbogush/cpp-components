@@ -26,9 +26,10 @@
     "editor.defaultFormatter": "mkhl.shfmt"
   },
   "clangd.arguments": [
-    "--compile-commands-dir=build/debug",
+    "--compile-commands-dir=build",
     "--background-index",
     "--clang-tidy",
     "-j=4"
-  ]
+  ],
+  "cmake.copyCompileCommands": "${workspaceFolder}/build/compile_commands.json"
 }
