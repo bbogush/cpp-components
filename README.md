@@ -9,7 +9,7 @@ shfmt)
 
 - [Docker](https://docs.docker.com/get-docker/) - for the development environment
 - CMake 3.20+ - only needed if building outside Docker
-- System libraries: Boost (system), OpenSSL, libcurl, liburing (`liburing-dev`)
+- System libraries: Boost (`libboost-dev`), OpenSSL, libcurl, liburing (`liburing-dev`)
 - Linux kernel >= 5.10 (Boost.Asio uses the io_uring backend)
 
 ## Using as a dependency

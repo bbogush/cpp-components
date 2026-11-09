@@ -19,7 +19,6 @@ RUN apt-get update && apt-get install -y \
     shfmt \
     valgrind \
     libboost-dev \
-    libboost-system-dev \
     libcurl4-openssl-dev \
     libssl-dev \
     liburing-dev

@@ -1,4 +1,4 @@
-find_package(Boost REQUIRED COMPONENTS system)
+find_package(Boost CONFIG REQUIRED)
 find_package(OpenSSL REQUIRED)
 find_package(CURL REQUIRED)
 
@@ -22,5 +22,5 @@ target_compile_definitions(cpp_components PUBLIC BOOST_ASIO_HAS_IO_URING=1
 
 target_link_libraries(cpp_components PRIVATE project_options)
 target_link_libraries(cpp_components PUBLIC project_features)
-target_link_libraries(cpp_components PUBLIC Boost::headers Boost::system OpenSSL::SSL CURL::libcurl
+target_link_libraries(cpp_components PUBLIC Boost::headers OpenSSL::SSL CURL::libcurl
                                             ${URING_LIBRARY})

@@ -29,7 +29,6 @@ jobs:
             lcov \
             ninja-build \
             libboost-dev \
-            libboost-system-dev \
             libcurl4-openssl-dev \
             libssl-dev \
             liburing-dev
