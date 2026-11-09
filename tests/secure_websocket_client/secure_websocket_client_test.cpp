@@ -914,10 +914,11 @@ public:
         changed.notify_all();
     }
 
-    std::vector<std::string> wait_for(size_t count)
+    std::vector<std::string> wait_for(size_t count,
+        std::chrono::steady_clock::duration timeout = wait_timeout)
     {
         std::unique_lock lock(mutex);
-        changed.wait_for(lock, wait_timeout, [this, count]() { return messages.size() >= count; });
+        changed.wait_for(lock, timeout, [this, count]() { return messages.size() >= count; });
         return messages;
     }
 
@@ -1033,8 +1034,9 @@ TEST(SecureWebSocketClientTest, write_now_rejects_when_all_slots_are_in_use)
     }
     EXPECT_EQ(results.back(), std::make_error_code(std::errc::no_buffer_space));
 
-    // The queued messages are all sent, in order.
-    const auto messages = collector.wait_for(slot_count);
+    // The queued messages are all sent, in order. One write is in flight at a time, so
+    // draining every slot may take longer than the usual wait.
+    const auto messages = collector.wait_for(slot_count, std::chrono::seconds { 30 });
     ASSERT_EQ(messages.size(), slot_count);
     for (size_t i = 0; i < slot_count; ++i) {
         EXPECT_EQ(messages[i], std::to_string(i));
