@@ -80,6 +80,15 @@
       }
     },
     {
+      "name": "valgrind-memcheck",
+      "displayName": "Valgrind Memcheck (-O0 -g + unit tests)",
+      "inherits": "debug",
+      "cacheVariables": {
+        "BUILD_TESTING": "ON",
+        "ENABLE_VALGRIND": "ON"
+      }
+    },
+    {
       "name": "coverage",
       "displayName": "Coverage (cpp_components/ only, -O0 -g --coverage + unit tests)",
       "inherits": "debug",
@@ -147,6 +156,11 @@
       "configurePreset": "tests-tsan"
     },
     {
+      "name": "valgrind-memcheck",
+      "inherits": "default-build",
+      "configurePreset": "valgrind-memcheck"
+    },
+    {
       "name": "coverage",
       "inherits": "default-build",
       "configurePreset": "coverage"
@@ -197,6 +211,13 @@
     {
       "name": "tests-tsan",
       "configurePreset": "tests-tsan",
+      "output": {
+        "outputOnFailure": true
+      }
+    },
+    {
+      "name": "valgrind-memcheck",
+      "configurePreset": "valgrind-memcheck",
       "output": {
         "outputOnFailure": true
       }

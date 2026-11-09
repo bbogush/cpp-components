@@ -1,0 +1,41 @@
+name: Unit Tests (Valgrind Memcheck)
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+    branches: [master]
+  workflow_dispatch:
+
+jobs:
+  unit-tests-valgrind-memcheck:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # Same packages as docker/Dockerfile
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            build-essential \
+            cmake \
+            ninja-build \
+            libboost-dev \
+            libboost-system-dev \
+            libcurl4-openssl-dev \
+            libssl-dev \
+            liburing-dev \
+            valgrind
+
+      - name: Configure
+        run: cmake --preset valgrind-memcheck
+
+      - name: Build
+        run: cmake --build --preset valgrind-memcheck
+
+      - name: Test
+        run: ctest --preset valgrind-memcheck

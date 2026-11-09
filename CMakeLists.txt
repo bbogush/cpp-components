@@ -9,6 +9,7 @@ option(BUILD_BENCHMARKS "Build Google Benchmark targets" OFF)
 option(ENABLE_COVERAGE "Instrument cpp_components/ targets for code coverage" OFF)
 option(ENABLE_CLANG_TIDY "Add clang-tidy static analysis target" OFF)
 option(ENABLE_TSAN "Relax -Werror for ThreadSanitizer-incompatible atomics" OFF)
+option(ENABLE_VALGRIND "Run unit tests under Valgrind Memcheck" OFF)
 
 if(ENABLE_CLANG_TIDY)
   set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
@@ -25,6 +26,20 @@ if(ENABLE_TSAN)
     OUTPUT_VARIABLE TSAN_HOST_ARCH
     OUTPUT_STRIP_TRAILING_WHITESPACE COMMAND_ERROR_IS_FATAL ANY)
   set(CMAKE_CROSSCOMPILING_EMULATOR "${SETARCH_EXECUTABLE};${TSAN_HOST_ARCH};-R")
+endif()
+
+if(ENABLE_VALGRIND)
+  # gtest_discover_tests prefixes CMAKE_CROSSCOMPILING_EMULATOR onto each test command, including
+  # discovery. Valgrind writes diagnostics to stderr, so gtest's stdout list stays parseable.
+  find_program(VALGRIND_EXECUTABLE valgrind REQUIRED)
+  set(CMAKE_CROSSCOMPILING_EMULATOR
+      "${VALGRIND_EXECUTABLE}"
+      "--tool=memcheck"
+      "--leak-check=full"
+      "--show-leak-kinds=definite,indirect"
+      "--errors-for-leak-kinds=definite,indirect"
+      "--track-origins=yes"
+      "--error-exitcode=1")
 endif()
 
 add_library(project_options INTERFACE)

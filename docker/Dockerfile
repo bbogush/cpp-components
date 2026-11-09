@@ -17,6 +17,7 @@ RUN apt-get update && apt-get install -y \
     nodejs \
     npm \
     shfmt \
+    valgrind \
     libboost-dev \
     libboost-system-dev \
     libcurl4-openssl-dev \
