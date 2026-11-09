@@ -9,14 +9,14 @@ on:
 
 jobs:
   format:
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     timeout-minutes: 10
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      # Ubuntu 24.04 packages, matching the Docker image toolchain; Node/npx is preinstalled on the
+      # Ubuntu 26.04 packages, matching the Docker image toolchain; Node/npx is preinstalled on the
       # runner and fetches the pinned prettier
       - name: Install formatters
         run: |
