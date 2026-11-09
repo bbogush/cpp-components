@@ -20,6 +20,7 @@
 #include <chrono>
 #include <functional>
 #include <future>
+#include <memory>
 #include <string>
 #include <system_error>
 #include <thread>
@@ -97,6 +98,18 @@ struct HttpsServer {
     }
 };
 
+// OpenSSL finishes its global setup on the first SSL context. Do that on the calling thread,
+// before the server thread starts, so the setup happens-before later SSL use on both threads.
+std::shared_ptr<boost::asio::ssl::context> make_server_ssl_context()
+{
+    namespace ssl = boost::asio::ssl;
+    auto ssl_context = std::make_shared<ssl::context>(ssl::context::tlsv12_server);
+    ssl_context->use_certificate_chain_file(TEST_CERT_DIR "/test-cert.pem");
+    ssl_context->use_private_key_file(TEST_CERT_DIR "/test-key.pem",
+        ssl::context::file_format::pem);
+    return ssl_context;
+}
+
 HttpsServer start_https_server(size_t max_connections,
     std::function<void(const boost::beast::http::request<boost::beast::http::string_body> &,
         boost::beast::http::response<boost::beast::http::string_body> &)>
@@ -118,65 +131,62 @@ HttpsServer start_https_server(size_t max_connections,
 
     HttpsServer server;
     server.port = acceptor->local_endpoint().port();
-    server.thread = std::thread([ioc, acceptor, handler = std::move(handler), max_connections]() {
-        ssl::context ssl_context(ssl::context::tlsv12_server);
-        ssl_context.use_certificate_chain_file(TEST_CERT_DIR "/test-cert.pem");
-        ssl_context.use_private_key_file(TEST_CERT_DIR "/test-key.pem",
-            ssl::context::file_format::pem);
+    auto ssl_context = make_server_ssl_context();
+    server.thread = std::thread(
+        [ioc, acceptor, handler = std::move(handler), max_connections, ssl_context]() {
+            std::vector<std::thread> workers;
+            workers.reserve(max_connections);
 
-        std::vector<std::thread> workers;
-        workers.reserve(max_connections);
+            for (size_t i = 0; i < max_connections; ++i) {
+                tcp::socket socket(*ioc);
+                boost::system::error_code ec;
+                acceptor->accept(socket, ec);
+                if (ec) {
+                    break;
+                }
 
-        for (size_t i = 0; i < max_connections; ++i) {
-            tcp::socket socket(*ioc);
-            boost::system::error_code ec;
-            acceptor->accept(socket, ec);
-            if (ec) {
-                break;
+                workers.emplace_back([socket = std::move(socket), ssl_context, handler]() mutable {
+                    boost::system::error_code ec;
+                    ssl_stream stream(beast::tcp_stream(std::move(socket)), *ssl_context);
+                    stream.handshake(ssl::stream_base::server, ec);
+                    if (ec) {
+                        // Ensure the current thread leaves no OpenSSL thread-local state behind
+                        // It is reported as a leak by sanitizers.
+                        OPENSSL_thread_stop();
+                        return;
+                    }
+
+                    for (;;) {
+                        beast::flat_buffer buffer;
+                        http::request<http::string_body> request;
+                        http::read(stream, buffer, request, ec);
+                        if (ec) {
+                            break;
+                        }
+
+                        http::response<http::string_body> response { http::status::ok,
+                            request.version() };
+                        response.set(http::field::server, "test");
+                        response.keep_alive(false);
+                        handler(request, response);
+                        response.prepare_payload();
+                        http::write(stream, response, ec);
+                        if (ec || !response.keep_alive()) {
+                            break;
+                        }
+                    }
+
+                    beast::error_code shutdown_ec;
+                    stream.shutdown(shutdown_ec);
+                    OPENSSL_thread_stop();
+                });
             }
 
-            workers.emplace_back([socket = std::move(socket), &ssl_context, handler]() mutable {
-                boost::system::error_code ec;
-                ssl_stream stream(beast::tcp_stream(std::move(socket)), ssl_context);
-                stream.handshake(ssl::stream_base::server, ec);
-                if (ec) {
-                    // Ensure the current thread leaves no OpenSSL thread-local state behind
-                    // It is reported as a leak by sanitizers.
-                    OPENSSL_thread_stop();
-                    return;
-                }
-
-                for (;;) {
-                    beast::flat_buffer buffer;
-                    http::request<http::string_body> request;
-                    http::read(stream, buffer, request, ec);
-                    if (ec) {
-                        break;
-                    }
-
-                    http::response<http::string_body> response { http::status::ok,
-                        request.version() };
-                    response.set(http::field::server, "test");
-                    response.keep_alive(false);
-                    handler(request, response);
-                    response.prepare_payload();
-                    http::write(stream, response, ec);
-                    if (ec || !response.keep_alive()) {
-                        break;
-                    }
-                }
-
-                beast::error_code shutdown_ec;
-                stream.shutdown(shutdown_ec);
-                OPENSSL_thread_stop();
-            });
-        }
-
-        for (auto &worker : workers) {
-            worker.join();
-        }
-        OPENSSL_thread_stop();
-    });
+            for (auto &worker : workers) {
+                worker.join();
+            }
+            OPENSSL_thread_stop();
+        });
 
     return server;
 }
@@ -200,12 +210,8 @@ HttpsServer start_hanging_https_server()
     HttpsServer server;
     server.port = acceptor->local_endpoint().port();
     server.stop = std::make_shared<std::atomic<bool>>(false);
-    server.thread = std::thread([ioc, acceptor, stop = server.stop]() {
-        ssl::context ssl_context(ssl::context::tlsv12_server);
-        ssl_context.use_certificate_chain_file(TEST_CERT_DIR "/test-cert.pem");
-        ssl_context.use_private_key_file(TEST_CERT_DIR "/test-key.pem",
-            ssl::context::file_format::pem);
-
+    auto ssl_context = make_server_ssl_context();
+    server.thread = std::thread([ioc, acceptor, stop = server.stop, ssl_context]() {
         tcp::socket socket(*ioc);
         boost::system::error_code ec;
         acceptor->accept(socket, ec);
@@ -214,7 +220,7 @@ HttpsServer start_hanging_https_server()
             return;
         }
 
-        ssl_stream stream(beast::tcp_stream(std::move(socket)), ssl_context);
+        ssl_stream stream(beast::tcp_stream(std::move(socket)), *ssl_context);
         stream.handshake(ssl::stream_base::server, ec);
         while (!ec && !stop->load(std::memory_order_acquire)) {
             std::this_thread::sleep_for(std::chrono::milliseconds { 10 });

@@ -17,6 +17,7 @@
 #include <chrono>
 #include <functional>
 #include <future>
+#include <memory>
 #include <string>
 #include <system_error>
 #include <thread>
@@ -65,6 +66,18 @@ uint16_t start_plain_tcp_close_server()
     return port;
 }
 
+// OpenSSL finishes its global setup on the first SSL context. Do that on the calling thread,
+// before the server thread starts, so the setup happens-before later SSL use on both threads.
+std::shared_ptr<boost::asio::ssl::context> make_server_ssl_context()
+{
+    namespace ssl = boost::asio::ssl;
+    auto ssl_context = std::make_shared<ssl::context>(ssl::context::tlsv12_server);
+    ssl_context->use_certificate_chain_file(TEST_CERT_DIR "/test-cert.pem");
+    ssl_context->use_private_key_file(TEST_CERT_DIR "/test-key.pem",
+        ssl::context::file_format::pem);
+    return ssl_context;
+}
+
 uint16_t start_https_server(
     std::function<void(const boost::beast::http::request<boost::beast::http::string_body> &,
         boost::beast::http::response<boost::beast::http::string_body> &)>
@@ -80,13 +93,9 @@ uint16_t start_https_server(
     auto ioc = std::make_shared<net::io_context>();
     auto acceptor = std::make_shared<tcp::acceptor>(*ioc, tcp::endpoint(tcp::v4(), 0));
     const auto port = acceptor->local_endpoint().port();
+    auto ssl_context = make_server_ssl_context();
 
-    std::thread([ioc, acceptor, handler = std::move(handler)]() {
-        ssl::context ssl_context(ssl::context::tlsv12_server);
-        ssl_context.use_certificate_chain_file(TEST_CERT_DIR "/test-cert.pem");
-        ssl_context.use_private_key_file(TEST_CERT_DIR "/test-key.pem",
-            ssl::context::file_format::pem);
-
+    std::thread([ioc, acceptor, handler = std::move(handler), ssl_context]() {
         tcp::socket socket(*ioc);
         boost::system::error_code ec;
         acceptor->accept(socket, ec);
@@ -94,7 +103,7 @@ uint16_t start_https_server(
             return;
         }
 
-        ssl_stream stream(beast::tcp_stream(std::move(socket)), ssl_context);
+        ssl_stream stream(beast::tcp_stream(std::move(socket)), *ssl_context);
         stream.handshake(ssl::stream_base::server, ec);
         if (ec) {
             return;

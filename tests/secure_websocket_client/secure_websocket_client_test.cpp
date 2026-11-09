@@ -44,7 +44,20 @@ bool wait_ready(const std::shared_future<T> &future)
 
 constexpr std::string_view echo_repeat_prefix = "repeat:";
 
-void run_secure_echo_session(boost::asio::ip::tcp::socket socket, bool close_after_first_message,
+// OpenSSL finishes its global setup on the first SSL context. Do that on the calling thread,
+// before the server thread starts, so the setup happens-before later SSL use on both threads.
+std::shared_ptr<boost::asio::ssl::context> make_server_ssl_context()
+{
+    namespace ssl = boost::asio::ssl;
+    auto ssl_context = std::make_shared<ssl::context>(ssl::context::tlsv12_server);
+    ssl_context->use_certificate_chain_file(TEST_CERT_DIR "/test-cert.pem");
+    ssl_context->use_private_key_file(TEST_CERT_DIR "/test-key.pem",
+        ssl::context::file_format::pem);
+    return ssl_context;
+}
+
+void run_secure_echo_session(boost::asio::ip::tcp::socket socket,
+    boost::asio::ssl::context &ssl_context, bool close_after_first_message,
     const std::function<void(std::string)> &on_target = nullptr)
 {
     namespace beast = boost::beast;
@@ -53,10 +66,6 @@ void run_secure_echo_session(boost::asio::ip::tcp::socket socket, bool close_aft
     namespace ssl = boost::asio::ssl;
     using ssl_stream = ssl::stream<beast::tcp_stream>;
     using websocket_stream = websocket::stream<ssl_stream>;
-
-    ssl::context ssl_context(ssl::context::tlsv12_server);
-    ssl_context.use_certificate_chain_file(TEST_CERT_DIR "/test-cert.pem");
-    ssl_context.use_private_key_file(TEST_CERT_DIR "/test-key.pem", ssl::context::file_format::pem);
 
     boost::system::error_code ec;
     ssl_stream stream(beast::tcp_stream(std::move(socket)), ssl_context);
@@ -118,8 +127,9 @@ uint16_t start_secure_echo_server(bool close_after_first_message = false, int ac
     auto ioc = std::make_shared<net::io_context>();
     auto acceptor = std::make_shared<tcp::acceptor>(*ioc, tcp::endpoint(tcp::v4(), 0));
     const auto port = acceptor->local_endpoint().port();
+    auto ssl_context = make_server_ssl_context();
 
-    std::thread([ioc, acceptor, close_after_first_message, accept_count,
+    std::thread([ioc, acceptor, ssl_context, close_after_first_message, accept_count,
                     on_target = std::move(on_target)]() {
         for (int i = 0; i < accept_count; ++i) {
             tcp::socket socket(*ioc);
@@ -128,7 +138,8 @@ uint16_t start_secure_echo_server(bool close_after_first_message = false, int ac
             if (ec) {
                 return;
             }
-            run_secure_echo_session(std::move(socket), close_after_first_message, on_target);
+            run_secure_echo_session(std::move(socket), *ssl_context, close_after_first_message,
+                on_target);
         }
     }).detach();
 
@@ -142,15 +153,16 @@ void start_secure_echo_server_on_port(uint16_t port)
 
     auto ioc = std::make_shared<net::io_context>();
     auto acceptor = std::make_shared<tcp::acceptor>(*ioc, tcp::endpoint(tcp::v4(), port));
+    auto ssl_context = make_server_ssl_context();
 
-    std::thread([ioc, acceptor]() {
+    std::thread([ioc, acceptor, ssl_context]() {
         tcp::socket socket(*ioc);
         boost::system::error_code ec;
         acceptor->accept(socket, ec);
         if (ec) {
             return;
         }
-        run_secure_echo_session(std::move(socket), false);
+        run_secure_echo_session(std::move(socket), *ssl_context, false);
     }).detach();
 }
 
@@ -201,13 +213,9 @@ uint16_t start_secure_websocket_path_server(std::string allowed_resource)
     auto ioc = std::make_shared<net::io_context>();
     auto acceptor = std::make_shared<tcp::acceptor>(*ioc, tcp::endpoint(tcp::v4(), 0));
     const auto port = acceptor->local_endpoint().port();
+    auto ssl_context = make_server_ssl_context();
 
-    std::thread([ioc, acceptor, allowed_resource = std::move(allowed_resource)]() {
-        ssl::context ssl_context(ssl::context::tlsv12_server);
-        ssl_context.use_certificate_chain_file(TEST_CERT_DIR "/test-cert.pem");
-        ssl_context.use_private_key_file(TEST_CERT_DIR "/test-key.pem",
-            ssl::context::file_format::pem);
-
+    std::thread([ioc, acceptor, ssl_context, allowed_resource = std::move(allowed_resource)]() {
         tcp::socket socket(*ioc);
         boost::system::error_code ec;
         acceptor->accept(socket, ec);
@@ -215,7 +223,7 @@ uint16_t start_secure_websocket_path_server(std::string allowed_resource)
             return;
         }
 
-        ssl_stream stream(beast::tcp_stream(std::move(socket)), ssl_context);
+        ssl_stream stream(beast::tcp_stream(std::move(socket)), *ssl_context);
         stream.handshake(ssl::stream_base::server, ec);
         if (ec) {
             return;
@@ -261,13 +269,9 @@ uint16_t start_secure_ping_pong_server(std::string expected_ping)
     auto ioc = std::make_shared<net::io_context>();
     auto acceptor = std::make_shared<tcp::acceptor>(*ioc, tcp::endpoint(tcp::v4(), 0));
     const auto port = acceptor->local_endpoint().port();
+    auto ssl_context = make_server_ssl_context();
 
-    std::thread([ioc, acceptor, expected_ping = std::move(expected_ping)]() {
-        ssl::context ssl_context(ssl::context::tlsv12_server);
-        ssl_context.use_certificate_chain_file(TEST_CERT_DIR "/test-cert.pem");
-        ssl_context.use_private_key_file(TEST_CERT_DIR "/test-key.pem",
-            ssl::context::file_format::pem);
-
+    std::thread([ioc, acceptor, ssl_context, expected_ping = std::move(expected_ping)]() {
         tcp::socket socket(*ioc);
         boost::system::error_code ec;
         acceptor->accept(socket, ec);
@@ -275,7 +279,7 @@ uint16_t start_secure_ping_pong_server(std::string expected_ping)
             return;
         }
 
-        websocket_stream ws(ssl::stream<beast::tcp_stream>(std::move(socket), ssl_context));
+        websocket_stream ws(ssl::stream<beast::tcp_stream>(std::move(socket), *ssl_context));
         ws.next_layer().handshake(ssl::stream_base::server, ec);
         if (ec) {
             return;
@@ -319,13 +323,9 @@ uint16_t start_secure_protocol_ping_server(std::shared_ptr<std::promise<void>> p
     auto ioc = std::make_shared<net::io_context>();
     auto acceptor = std::make_shared<tcp::acceptor>(*ioc, tcp::endpoint(tcp::v4(), 0));
     const auto port = acceptor->local_endpoint().port();
+    auto ssl_context = make_server_ssl_context();
 
-    std::thread([ioc, acceptor, ping_received = std::move(ping_received)]() {
-        ssl::context ssl_context(ssl::context::tlsv12_server);
-        ssl_context.use_certificate_chain_file(TEST_CERT_DIR "/test-cert.pem");
-        ssl_context.use_private_key_file(TEST_CERT_DIR "/test-key.pem",
-            ssl::context::file_format::pem);
-
+    std::thread([ioc, acceptor, ssl_context, ping_received = std::move(ping_received)]() {
         tcp::socket socket(*ioc);
         boost::system::error_code ec;
         acceptor->accept(socket, ec);
@@ -333,7 +333,7 @@ uint16_t start_secure_protocol_ping_server(std::shared_ptr<std::promise<void>> p
             return;
         }
 
-        websocket_stream ws(ssl::stream<beast::tcp_stream>(std::move(socket), ssl_context));
+        websocket_stream ws(ssl::stream<beast::tcp_stream>(std::move(socket), *ssl_context));
         ws.next_layer().handshake(ssl::stream_base::server, ec);
         if (ec) {
             return;
