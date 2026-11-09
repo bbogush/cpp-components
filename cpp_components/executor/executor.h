@@ -13,7 +13,6 @@
 #include <atomic>
 #include <cstdint>
 #include <functional>
-#include <memory>
 #include <system_error>
 #include <thread>
 
@@ -66,15 +65,17 @@ public:
     template<typename F>
     void post(F &&callback)
     {
-        io_context.post(boost::asio::bind_allocator(boost::asio::recycling_allocator<void> {},
-            std::forward<F>(callback)));
+        boost::asio::post(io_context,
+            boost::asio::bind_allocator(boost::asio::recycling_allocator<void> {},
+                std::forward<F>(callback)));
     }
 
     template<typename F>
     void dispatch(F &&callback)
     {
-        io_context.dispatch(boost::asio::bind_allocator(boost::asio::recycling_allocator<void> {},
-            std::forward<F>(callback)));
+        boost::asio::dispatch(io_context,
+            boost::asio::bind_allocator(boost::asio::recycling_allocator<void> {},
+                std::forward<F>(callback)));
     }
 
 private:
@@ -88,7 +89,7 @@ private:
     boost::asio::io_context io_context;
     // Declared after io_context so it is destroyed (and its eventfd closed) first.
     boost::asio::posix::stream_descriptor doorbell;
-    std::unique_ptr<boost::asio::io_context::work> work;
+    boost::asio::executor_work_guard<boost::asio::io_context::executor_type> work;
     std::thread thread;
 
     pthread_t thread_handle {};

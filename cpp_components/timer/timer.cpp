@@ -13,8 +13,7 @@ Timer::Timer(executor::Executor &executor) : timer(executor.get_context())
 
 Timer::~Timer()
 {
-    boost::system::error_code ec;
-    timer.cancel(ec);
+    cancel();
 }
 
 void Timer::expires_after(std::chrono::steady_clock::duration duration)
@@ -44,8 +43,11 @@ void Timer::async_wait(Handler handler)
 
 void Timer::cancel()
 {
-    boost::system::error_code ec;
-    timer.cancel(ec);
+    // A failed cancel must not escape, including from the destructor.
+    try {
+        timer.cancel();
+    } catch (const boost::system::system_error &) {
+    }
 }
 
 } // namespace cpp_components::timer
