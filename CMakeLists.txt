@@ -8,10 +8,11 @@ option(BUILD_TESTING "Build unit tests" OFF)
 option(BUILD_BENCHMARKS "Build Google Benchmark targets" OFF)
 option(ENABLE_COVERAGE "Instrument cpp_components/ targets for code coverage" OFF)
 option(ENABLE_CLANG_TIDY "Add clang-tidy static analysis target" OFF)
+option(ENABLE_CPPCHECK "Add cppcheck static analysis target" OFF)
 option(ENABLE_TSAN "Relax -Werror for ThreadSanitizer-incompatible atomics" OFF)
 option(ENABLE_VALGRIND "Run unit tests under Valgrind Memcheck" OFF)
 
-if(ENABLE_CLANG_TIDY)
+if(ENABLE_CLANG_TIDY OR ENABLE_CPPCHECK)
   set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 endif()
 
@@ -109,5 +110,21 @@ if(ENABLE_CLANG_TIDY)
       ${CMAKE_SOURCE_DIR}/cmake/clang_tidy.cmake
     WORKING_DIRECTORY "${CMAKE_BINARY_DIR}"
     COMMENT "Running clang-tidy on cpp_components/"
+    USES_TERMINAL VERBATIM)
+endif()
+
+if(ENABLE_CPPCHECK)
+  set(CPPCHECK_JOBS
+      0
+      CACHE STRING "Parallel cppcheck jobs (0 = auto-detect CPU count)")
+
+  add_custom_target(
+    cppcheck
+    COMMAND
+      "${CMAKE_COMMAND}" -DCPPCHECK_BINARY_DIR=${CMAKE_BINARY_DIR}
+      -DCPPCHECK_SOURCE_DIR=${CMAKE_SOURCE_DIR} -DCPPCHECK_JOBS=${CPPCHECK_JOBS} -P
+      ${CMAKE_SOURCE_DIR}/cmake/cppcheck.cmake
+    WORKING_DIRECTORY "${CMAKE_BINARY_DIR}"
+    COMMENT "Running cppcheck"
     USES_TERMINAL VERBATIM)
 endif()

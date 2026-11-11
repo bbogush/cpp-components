@@ -98,7 +98,7 @@
     },
     {
       "name": "tests-coverage",
-      "displayName": "Coverage (cpp_components/ only, -O0 -g --coverage + unit tests)",
+      "displayName": "Coverage (-O0 -g --coverage + unit tests)",
       "inherits": "debug",
       "cacheVariables": {
         "BUILD_TESTING": "ON",
@@ -107,10 +107,18 @@
     },
     {
       "name": "clang-tidy",
-      "displayName": "Clang-Tidy (static analysis on cpp_components/)",
+      "displayName": "Clang-Tidy (static analysis)",
       "inherits": "debug",
       "cacheVariables": {
         "ENABLE_CLANG_TIDY": "ON"
+      }
+    },
+    {
+      "name": "cppcheck",
+      "displayName": "Cppcheck (static analysis)",
+      "inherits": "debug",
+      "cacheVariables": {
+        "ENABLE_CPPCHECK": "ON"
       }
     },
     {
@@ -187,13 +195,14 @@
     {
       "name": "clang-tidy",
       "inherits": "default-build",
-      "configurePreset": "clang-tidy"
-    },
-    {
-      "name": "clang-tidy-check",
-      "inherits": "default-build",
       "configurePreset": "clang-tidy",
       "targets": ["clang-tidy"]
+    },
+    {
+      "name": "cppcheck",
+      "inherits": "default-build",
+      "configurePreset": "cppcheck",
+      "targets": ["cppcheck"]
     },
     {
       "name": "format-check",

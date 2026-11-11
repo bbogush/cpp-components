@@ -7,7 +7,8 @@
 - Check clang-format, cmake-format, prettier and shfmt before submitting (`format-check` preset).
 - Add and run unit tests (`tests`, `tests-asan`, `tests-tsan`, and `tests-valgrind-memcheck`
   presets).
-- Run clang-tidy and fix reported issues (`clang-tidy-check` preset).
+- Run clang-tidy and fix reported issues (`clang-tidy` preset).
+- Run cppcheck and fix reported issues (`cppcheck` preset).
 - Run coverage and meet >= 90% on `src/` (`coverage-report` preset).
 
 ## Commits

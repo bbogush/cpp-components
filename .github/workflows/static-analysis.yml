@@ -34,4 +34,32 @@ jobs:
         run: cmake --preset clang-tidy
 
       - name: Run clang-tidy
-        run: cmake --build --preset clang-tidy-check
+        run: cmake --build --preset clang-tidy
+
+  cppcheck:
+    runs-on: ubuntu-26.04
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # Same packages as docker/Dockerfile
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            build-essential \
+            cmake \
+            cppcheck \
+            ninja-build \
+            libboost-dev \
+            libcurl4-openssl-dev \
+            libssl-dev \
+            liburing-dev
+
+      - name: Configure
+        run: cmake --preset cppcheck
+
+      - name: Run cppcheck
+        run: cmake --build --preset cppcheck
