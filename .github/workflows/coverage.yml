@@ -34,24 +34,24 @@ jobs:
             liburing-dev
 
       - name: Configure
-        run: cmake --preset coverage
+        run: cmake --preset tests-coverage
 
       - name: Build
-        run: cmake --build --preset coverage
+        run: cmake --build --preset tests-coverage
 
       - name: Test
-        run: ctest --preset coverage
+        run: ctest --preset tests-coverage
 
       - name: Generate report
         run: cmake --build --preset coverage-report
 
       - name: Add coverage summary
-        if: always() && hashFiles('build/coverage/coverage-src.info') != ''
+        if: always() && hashFiles('build/tests-coverage/coverage-src.info') != ''
         run: |
           {
             echo '### Coverage (cpp_components/)'
             echo '```'
-            lcov --summary build/coverage/coverage-src.info 2>&1
+            lcov --summary build/tests-coverage/coverage-src.info 2>&1
             echo '```'
           } >> "$GITHUB_STEP_SUMMARY"
 
@@ -60,12 +60,12 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: coverage-report
-          path: build/coverage/coverage-report
+          path: build/tests-coverage/coverage-report
           if-no-files-found: ignore
 
       - name: Check line coverage >= ${{ env.MIN_LINE_COVERAGE }}%
         run: |
-          if ! lcov --summary build/coverage/coverage-src.info \
+          if ! lcov --summary build/tests-coverage/coverage-src.info \
                     --fail-under-lines "$MIN_LINE_COVERAGE"; then
             echo "::error::Line coverage of cpp_components/ is below ${MIN_LINE_COVERAGE}%"
             exit 1

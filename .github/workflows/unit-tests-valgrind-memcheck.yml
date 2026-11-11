@@ -24,17 +24,17 @@ jobs:
             build-essential \
             cmake \
             ninja-build \
+            valgrind \
             libboost-dev \
             libcurl4-openssl-dev \
             libssl-dev \
-            liburing-dev \
-            valgrind
+            liburing-dev
 
       - name: Configure
-        run: cmake --preset valgrind-memcheck
+        run: cmake --preset tests-valgrind-memcheck
 
       - name: Build
-        run: cmake --build --preset valgrind-memcheck
+        run: cmake --build --preset tests-valgrind-memcheck
 
       - name: Test
-        run: ctest --preset valgrind-memcheck
+        run: ctest --preset tests-valgrind-memcheck

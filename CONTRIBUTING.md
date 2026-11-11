@@ -5,7 +5,8 @@
 - Follow [CODE_STYLE.md](CODE_STYLE.md).
 - Build successfully (see [README.md](README.md)).
 - Check clang-format, cmake-format, prettier and shfmt before submitting (`format-check` preset).
-- Add and run unit tests (`tests-asan`, `tests-tsan`, and `valgrind-memcheck` presets).
+- Add and run unit tests (`tests`, `tests-asan`, `tests-tsan`, and `tests-valgrind-memcheck`
+  presets).
 - Run clang-tidy and fix reported issues (`clang-tidy-check` preset).
 - Run coverage and meet >= 90% on `src/` (`coverage-report` preset).
 

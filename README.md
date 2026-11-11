@@ -78,19 +78,20 @@ The container uses `docker/Dockerfile` (same as `docker_run.sh`).
 
 CMake is the build system. Presets are defined in `CMakePresets.json`:
 
-| Preset              | Output directory          | Description                                                                |
-| ------------------- | ------------------------- | -------------------------------------------------------------------------- |
-| `release`           | `build/release`           | Optimized build                                                            |
-| `relwithdebinfo`    | `build/relwithdebinfo`    | Optimized build with debug symbols and frame pointers                      |
-| `debug`             | `build/debug`             | Unoptimized build with debug symbols                                       |
-| `asan`              | `build/asan`              | Sanitizer-instrumented build                                               |
-| `tests-asan`        | `build/tests-asan`        | Inherits `asan` with unit tests enabled                                    |
-| `tsan`              | `build/tsan`              | ThreadSanitizer-instrumented build                                         |
-| `tests-tsan`        | `build/tests-tsan`        | Inherits `tsan` with unit tests enabled                                    |
-| `valgrind-memcheck` | `build/valgrind-memcheck` | Inherits `debug` with unit tests under Valgrind Memcheck                   |
-| `coverage`          | `build/coverage`          | Inherits `debug` with tests and `cpp_components/` coverage instrumentation |
-| `clang-tidy`        | `build/clang-tidy`        | Inherits `debug` with static analysis on `cpp_components/`                 |
-| `benchmarks`        | `build/benchmarks`        | Inherits `relwithdebinfo` with Google Benchmark targets enabled            |
+| Preset                    | Output directory                | Description                                                                |
+| ------------------------- | ------------------------------- | -------------------------------------------------------------------------- |
+| `release`                 | `build/release`                 | Optimized build                                                            |
+| `relwithdebinfo`          | `build/relwithdebinfo`          | Optimized build with debug symbols and frame pointers                      |
+| `debug`                   | `build/debug`                   | Unoptimized build with debug symbols                                       |
+| `tests`                   | `build/tests`                   | Inherits `debug` with unit tests enabled                                   |
+| `asan`                    | `build/asan`                    | Sanitizer-instrumented build                                               |
+| `tests-asan`              | `build/tests-asan`              | Inherits `asan` with unit tests enabled                                    |
+| `tsan`                    | `build/tsan`                    | ThreadSanitizer-instrumented build                                         |
+| `tests-tsan`              | `build/tests-tsan`              | Inherits `tsan` with unit tests enabled                                    |
+| `tests-valgrind-memcheck` | `build/tests-valgrind-memcheck` | Inherits `debug` with unit tests under Valgrind Memcheck                   |
+| `tests-coverage`          | `build/tests-coverage`          | Inherits `debug` with tests and `cpp_components/` coverage instrumentation |
+| `clang-tidy`              | `build/clang-tidy`              | Inherits `debug` with static analysis on `cpp_components/`                 |
+| `benchmarks`              | `build/benchmarks`              | Inherits `relwithdebinfo` with Google Benchmark targets enabled            |
 
 From inside the container (or locally with CMake installed):
 
@@ -124,6 +125,14 @@ rm -rf build
 ## Testing
 
 Unit tests use [Google Test](https://github.com/google/googletest), fetched automatically by CMake.
+The `tests` preset builds in `build/tests` with the same flags as `debug`.
+
+```bash
+cmake --preset tests
+cmake --build --preset tests
+ctest --preset tests
+```
+
 The `tests-asan` preset builds in `build/tests-asan` and AddressSanitizer/UBSan instrumentation.
 
 ```bash
@@ -140,13 +149,13 @@ cmake --build --preset tests-tsan
 ctest --preset tests-tsan
 ```
 
-The `valgrind-memcheck` preset builds in `build/valgrind-memcheck` and runs each test under Valgrind
-Memcheck.
+The `tests-valgrind-memcheck` preset builds in `build/tests-valgrind-memcheck` and runs each test
+under Valgrind Memcheck.
 
 ```bash
-cmake --preset valgrind-memcheck
-cmake --build --preset valgrind-memcheck
-ctest --preset valgrind-memcheck
+cmake --preset tests-valgrind-memcheck
+cmake --build --preset tests-valgrind-memcheck
+ctest --preset tests-valgrind-memcheck
 ```
 
 ## Benchmarks
@@ -183,7 +192,7 @@ sudo perf report --stdio > perf_report.txt
 
 ## Coverage
 
-The `coverage` preset builds the `cpp_components/` targets with GCC coverage instrumentation
+The `tests-coverage` preset builds the `cpp_components/` targets with GCC coverage instrumentation
 (`--coverage`) and enables the unit tests. Coverage is scoped to `cpp_components/` - the report
 filters out test sources and Google Test headers.
 
@@ -192,13 +201,13 @@ preset. That step prints coverage summaries with `lcov` and generates an HTML re
 (included in the Docker image):
 
 ```bash
-cmake --preset coverage
-cmake --build --preset coverage
-ctest --preset coverage
+cmake --preset tests-coverage
+cmake --build --preset tests-coverage
+ctest --preset tests-coverage
 cmake --build --preset coverage-report
 ```
 
-The last step writes an HTML report to `build/coverage/coverage-report/index.html`.
+The last step writes an HTML report to `build/tests-coverage/coverage-report/index.html`.
 
 ## Clang-Tidy
 
@@ -270,7 +279,7 @@ shfmt -w script.sh
 ```
 .
 |-- CMakeLists.txt          # Root CMake project
-|-- CMakePresets.json       # Release, debug, tests, ASan, TSan, Valgrind, coverage, clang-tidy, and benchmarks presets
+|-- CMakePresets.json       # Release, debug, tests, ASan, TSan, Valgrind, coverage, clang-tidy, benchmarks
 |-- cpp_components/         # Library sources and public headers
 |-- tests/                  # Google Test unit tests
 |-- benchmarks/             # Google Benchmark targets

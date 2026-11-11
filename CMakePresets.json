@@ -43,6 +43,14 @@
       }
     },
     {
+      "name": "tests",
+      "displayName": "Tests (Debug + unit tests)",
+      "inherits": "debug",
+      "cacheVariables": {
+        "BUILD_TESTING": "ON"
+      }
+    },
+    {
       "name": "asan",
       "displayName": "ASan (-O1 -g -fsanitize=address,undefined -fno-omit-frame-pointer)",
       "inherits": "base",
@@ -80,7 +88,7 @@
       }
     },
     {
-      "name": "valgrind-memcheck",
+      "name": "tests-valgrind-memcheck",
       "displayName": "Valgrind Memcheck (-O0 -g + unit tests)",
       "inherits": "debug",
       "cacheVariables": {
@@ -89,7 +97,7 @@
       }
     },
     {
-      "name": "coverage",
+      "name": "tests-coverage",
       "displayName": "Coverage (cpp_components/ only, -O0 -g --coverage + unit tests)",
       "inherits": "debug",
       "cacheVariables": {
@@ -136,6 +144,11 @@
       "configurePreset": "debug"
     },
     {
+      "name": "tests",
+      "inherits": "default-build",
+      "configurePreset": "tests"
+    },
+    {
       "name": "asan",
       "inherits": "default-build",
       "configurePreset": "asan"
@@ -156,19 +169,19 @@
       "configurePreset": "tests-tsan"
     },
     {
-      "name": "valgrind-memcheck",
+      "name": "tests-valgrind-memcheck",
       "inherits": "default-build",
-      "configurePreset": "valgrind-memcheck"
+      "configurePreset": "tests-valgrind-memcheck"
     },
     {
-      "name": "coverage",
+      "name": "tests-coverage",
       "inherits": "default-build",
-      "configurePreset": "coverage"
+      "configurePreset": "tests-coverage"
     },
     {
       "name": "coverage-report",
       "inherits": "default-build",
-      "configurePreset": "coverage",
+      "configurePreset": "tests-coverage",
       "targets": ["coverage-report"]
     },
     {
@@ -202,6 +215,13 @@
   ],
   "testPresets": [
     {
+      "name": "tests",
+      "configurePreset": "tests",
+      "output": {
+        "outputOnFailure": true
+      }
+    },
+    {
       "name": "tests-asan",
       "configurePreset": "tests-asan",
       "output": {
@@ -216,15 +236,15 @@
       }
     },
     {
-      "name": "valgrind-memcheck",
-      "configurePreset": "valgrind-memcheck",
+      "name": "tests-valgrind-memcheck",
+      "configurePreset": "tests-valgrind-memcheck",
       "output": {
         "outputOnFailure": true
       }
     },
     {
-      "name": "coverage",
-      "configurePreset": "coverage",
+      "name": "tests-coverage",
+      "configurePreset": "tests-coverage",
       "output": {
         "outputOnFailure": true
       }
