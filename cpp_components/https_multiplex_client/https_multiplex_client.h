@@ -96,7 +96,7 @@ private:
 
     void start_request(const std::shared_ptr<ConnContext> &conn, HttpMethod method);
     std::error_code configure_easy_handle(const std::shared_ptr<ConnContext> &conn);
-    std::error_code apply_method(CURL *easy, HttpMethod method, ConnContext &conn);
+    std::error_code apply_method(CURL *easy, HttpMethod method, const ConnContext &conn);
 
     static int socket_callback(CURL *easy, curl_socket_t socket, int what, void *userp,
         void *socketp);
@@ -107,7 +107,7 @@ private:
 
     int handle_add_socket(curl_socket_t socket, int what);
     int handle_remove_socket(int *actionp);
-    int handle_set_socket(curl_socket_t socket, int what, int *actionp);
+    void handle_set_socket(curl_socket_t socket, int what, int *actionp);
     void arm_socket_watches(const std::shared_ptr<TcpSocket> &tcp_socket, int action);
 
     void event_callback(const std::shared_ptr<TcpSocket> &tcp_socket, int action);

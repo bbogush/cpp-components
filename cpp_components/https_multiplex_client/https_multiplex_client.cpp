@@ -73,8 +73,8 @@ HttpsMultiplexClient::~HttpsMultiplexClient()
     connections.clear();
     pending.store(0, std::memory_order_release);
 
-    for (auto &entry : outstanding) {
-        auto &conn = entry.second;
+    for (const auto &entry : outstanding) {
+        const auto &conn = entry.second;
         if (multi && conn->easy) {
             curl_multi_remove_handle(multi, conn->easy.get());
         }
@@ -310,7 +310,8 @@ std::error_code HttpsMultiplexClient::configure_easy_handle(
     return {};
 }
 
-std::error_code HttpsMultiplexClient::apply_method(CURL *easy, HttpMethod method, ConnContext &conn)
+std::error_code HttpsMultiplexClient::apply_method(CURL *easy, HttpMethod method,
+    const ConnContext &conn)
 {
     if (!to_curl_method(method)) {
         return std::make_error_code(std::errc::invalid_argument);
@@ -369,7 +370,8 @@ int HttpsMultiplexClient::handle_socket_event(curl_socket_t socket, int what, vo
     if (!actionp) {
         return handle_add_socket(socket, what);
     }
-    return handle_set_socket(socket, what, actionp);
+    handle_set_socket(socket, what, actionp);
+    return 0;
 }
 
 int HttpsMultiplexClient::timer_callback(CURLM *, long timeout_ms, void *userp)
@@ -387,19 +389,17 @@ int HttpsMultiplexClient::handle_timeout_event(long timeout_ms)
 
     timer.expires_after(std::chrono::milliseconds(timeout_ms));
     auto self = shared_from_this();
-    auto timer_callback = [self](const boost::system::error_code &error) {
+    auto on_timer = [self](const boost::system::error_code &error) {
         self->asio_timer_callback(error);
     };
-    timer.async_wait(std::move(timer_callback));
+    timer.async_wait(std::move(on_timer));
     return 0;
 }
 
 int HttpsMultiplexClient::handle_add_socket(curl_socket_t socket, int what)
 {
     auto action = std::make_shared<int>(0);
-    if (handle_set_socket(socket, what, action.get()) < 0) {
-        return -1;
-    }
+    handle_set_socket(socket, what, action.get());
 
     const CURLMcode ret = curl_multi_assign(multi, socket, action.get());
     if (ret != CURLM_OK) {
@@ -432,21 +432,21 @@ void HttpsMultiplexClient::arm_socket_watches(const std::shared_ptr<TcpSocket> &
         tcp_socket->async_wait(TcpSocket::wait_read, std::move(read_callback));
     }
     if (action == CURL_POLL_OUT || action == CURL_POLL_INOUT) {
-        auto write_callback = [self, tcp_socket](const boost::system::error_code &ec) {
+        auto write_wait = [self, tcp_socket](const boost::system::error_code &ec) {
             if (ec) {
                 return;
             }
             self->event_callback(tcp_socket, CURL_CSELECT_OUT);
         };
-        tcp_socket->async_wait(TcpSocket::wait_write, std::move(write_callback));
+        tcp_socket->async_wait(TcpSocket::wait_write, std::move(write_wait));
     }
 }
 
-int HttpsMultiplexClient::handle_set_socket(curl_socket_t socket, int action, int *actionp)
+void HttpsMultiplexClient::handle_set_socket(curl_socket_t socket, int action, int *actionp)
 {
     auto it = socket_map.find(socket);
     if (it == socket_map.end()) {
-        return 0;
+        return;
     }
 
     auto &tcp_socket = it->second;
@@ -456,7 +456,6 @@ int HttpsMultiplexClient::handle_set_socket(curl_socket_t socket, int action, in
     boost::system::error_code cancel_ec;
     tcp_socket->cancel(cancel_ec);
     arm_socket_watches(tcp_socket, action);
-    return 0;
 }
 
 void HttpsMultiplexClient::event_callback(const std::shared_ptr<TcpSocket> &tcp_socket, int action)

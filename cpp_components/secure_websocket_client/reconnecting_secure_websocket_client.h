@@ -34,12 +34,12 @@ public:
     ~ReconnectingSecureWebSocketClient() override;
 
     void connect(PrepareConnectionHandler prepare_connection, ConnectHandler handler);
-    void close(CloseHandler handler = nullptr);
 
     void set_initial_reconnect_delay(std::chrono::steady_clock::duration delay);
     void set_max_reconnect_delay(std::chrono::steady_clock::duration delay);
 
 protected:
+    void close_on_executor(const CloseHandler &handler) override;
     void on_unexpected_disconnect(const std::error_code &ec) override;
 
 private:

@@ -91,6 +91,7 @@ protected:
 
     void do_connect(ConnectHandler handler);
     void do_close(const CloseHandler &handler);
+    virtual void close_on_executor(const CloseHandler &handler);
 
     virtual void on_unexpected_disconnect(const std::error_code &ec);
 
@@ -136,7 +137,7 @@ private:
     void handle_read(const boost::system::error_code &ec, size_t bytes_transferred);
 
     // Return the error if the write could not be queued.
-    std::error_code do_write(std::string message, WriteHandler handler);
+    std::error_code do_write(const std::string &message, WriteHandler handler);
     std::error_code do_protocol_ping();
     std::error_code queue_write(WriteType type, std::span<const char> message,
         WriteHandler &handler);

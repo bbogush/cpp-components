@@ -78,7 +78,7 @@ void SecureWebSocketClient::write(std::string message, WriteHandler handler)
     auto self = shared_from_this();
     auto write_handler = [self, message = std::move(message),
                              handler = std::move(handler)]() mutable {
-        self->do_write(std::move(message), std::move(handler));
+        self->do_write(message, std::move(handler));
     };
     executor.post(std::move(write_handler));
 }
@@ -87,27 +87,32 @@ void SecureWebSocketClient::close(CloseHandler handler)
 {
     auto self = shared_from_this();
     auto close_handler = [self, handler = std::move(handler)]() mutable {
-        self->do_close(handler);
+        self->close_on_executor(handler);
     };
     executor.post(std::move(close_handler));
+}
+
+void SecureWebSocketClient::close_on_executor(const CloseHandler &handler)
+{
+    do_close(handler);
 }
 
 void SecureWebSocketClient::set_message_handler(MessageHandler handler)
 {
     auto self = shared_from_this();
-    auto message_handler = [self, handler = std::move(handler)]() mutable {
+    auto set_handler = [self, handler = std::move(handler)]() mutable {
         self->message_handler = std::move(handler);
     };
-    executor.post(std::move(message_handler));
+    executor.post(std::move(set_handler));
 }
 
 void SecureWebSocketClient::set_disconnect_handler(DisconnectHandler handler)
 {
     auto self = shared_from_this();
-    auto disconnect_handler = [self, handler = std::move(handler)]() mutable {
+    auto set_handler = [self, handler = std::move(handler)]() mutable {
         self->disconnect_handler = std::move(handler);
     };
-    executor.post(std::move(disconnect_handler));
+    executor.post(std::move(set_handler));
 }
 
 void SecureWebSocketClient::set_ping_message_generator(PingMessageGenerator generator)
@@ -340,7 +345,7 @@ void SecureWebSocketClient::handle_read(const boost::system::error_code &ec, siz
     start_read();
 }
 
-std::error_code SecureWebSocketClient::do_write(std::string message, WriteHandler handler)
+std::error_code SecureWebSocketClient::do_write(const std::string &message, WriteHandler handler)
 {
     const auto ec = queue_write(WriteType::message, message, handler);
     if (ec && handler) {

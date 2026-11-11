@@ -10,6 +10,7 @@
 
 namespace cpp_components::secure_websocket_client {
 
+// cppcheck-suppress duplInheritedMember
 std::shared_ptr<ReconnectingSecureWebSocketClient> ReconnectingSecureWebSocketClient::create(
     executor::Executor &executor)
 {
@@ -54,14 +55,10 @@ void ReconnectingSecureWebSocketClient::connect(PrepareConnectionHandler prepare
     executor.post(start_connect_handler);
 }
 
-void ReconnectingSecureWebSocketClient::close(CloseHandler handler)
+void ReconnectingSecureWebSocketClient::close_on_executor(const CloseHandler &handler)
 {
-    auto self = get_self();
-    auto stop_reconnecting_handler = [self, handler = std::move(handler)]() mutable {
-        self->stop_reconnecting();
-        self->do_close(handler);
-    };
-    executor.post(stop_reconnecting_handler);
+    stop_reconnecting();
+    SecureWebSocketClient::close_on_executor(handler);
 }
 
 void ReconnectingSecureWebSocketClient::set_initial_reconnect_delay(

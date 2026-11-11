@@ -44,7 +44,7 @@ public:
     std::error_code set_priority(int priority);
     std::error_code get_priority(int &priority);
     std::error_code set_cpu_affinity(size_t cpu_id);
-    int get_max_priority() const;
+    static int get_max_priority();
 
     // Wakes the executor to run the doorbell handler; call after pushing to a queue the
     // handler drains. Thread-safe, wait-free, no allocation. Writes to an eventfd only when

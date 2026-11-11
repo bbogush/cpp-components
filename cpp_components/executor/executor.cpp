@@ -170,7 +170,7 @@ std::error_code Executor::set_cpu_affinity(size_t cpu_id)
     return {};
 }
 
-int Executor::get_max_priority() const
+int Executor::get_max_priority()
 {
     return sched_get_priority_max(SCHED_RR);
 }
