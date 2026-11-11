@@ -1,14 +1,14 @@
 # cpp-components
 
-Reusable C++20 components packaged as a static library for consumption via CMake FetchContent.
+Reusable C++26 components packaged as a static library for consumption via CMake FetchContent.
 
-**Stack:** C++20, CMake 3.20+, Ubuntu 26.04 (GCC, clang-tidy, cppcheck, CMake, Git, Node.js for
+**Stack:** C++26, CMake 3.25+, Ubuntu 26.04 (GCC, clang-tidy, cppcheck, CMake, Git, Node.js for
 prettier, shfmt)
 
 ## Prerequisites
 
 - [Docker](https://docs.docker.com/get-docker/) - for the development environment
-- CMake 3.20+ - only needed if building outside Docker
+- CMake 3.25+ - only needed if building outside Docker
 - System libraries: Boost (`libboost-dev`), OpenSSL, libcurl, liburing (`liburing-dev`)
 - Linux kernel >= 5.10 (Boost.Asio uses the io_uring backend)
 

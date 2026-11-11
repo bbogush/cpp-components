@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.20)
+cmake_minimum_required(VERSION 3.25)
 project(
   cpp-components
   VERSION 0.1.0
@@ -59,8 +59,11 @@ if(ENABLE_COVERAGE)
   target_link_options(project_options INTERFACE --coverage)
 endif()
 
+# cxx_std_26 selects the dialect; disable GNU extensions so targets compile as ISO C++26.
+set(CMAKE_CXX_EXTENSIONS OFF)
+
 add_library(project_features INTERFACE)
-target_compile_features(project_features INTERFACE cxx_std_20)
+target_compile_features(project_features INTERFACE cxx_std_26)
 
 add_subdirectory(cpp_components)
 
