@@ -5,6 +5,15 @@ Reusable C++26 components packaged as a static library for consumption via CMake
 **Stack:** C++26, CMake 3.25+, Ubuntu 26.04 (GCC, clang-tidy, cppcheck, CMake, Git, Node.js for
 prettier, shfmt)
 
+[![Build Release](../../actions/workflows/build-release.yml/badge.svg)](../../actions/workflows/build-release.yml)
+[![Unit Tests (ASan)](../../actions/workflows/unit-tests-asan.yml/badge.svg)](../../actions/workflows/unit-tests-asan.yml)
+[![Unit Tests (TSan)](../../actions/workflows/unit-tests-tsan.yml/badge.svg)](../../actions/workflows/unit-tests-tsan.yml)
+[![Unit Tests (Valgrind Memcheck)](../../actions/workflows/unit-tests-valgrind-memcheck.yml/badge.svg)](../../actions/workflows/unit-tests-valgrind-memcheck.yml)
+[![Coverage](../../actions/workflows/coverage.yml/badge.svg)](../../actions/workflows/coverage.yml)
+[![Static Analysis](../../actions/workflows/static-analysis.yml/badge.svg)](../../actions/workflows/static-analysis.yml)
+[![Format](../../actions/workflows/format.yml/badge.svg)](../../actions/workflows/format.yml)
+[![Benchmarks](../../actions/workflows/benchmarks.yml/badge.svg)](../../actions/workflows/benchmarks.yml)
+
 ## Prerequisites
 
 - [Docker](https://docs.docker.com/get-docker/) - for the development environment
