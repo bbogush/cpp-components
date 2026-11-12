@@ -2,9 +2,9 @@ name: Benchmarks
 
 on:
   push:
-    branches: [master]
+    branches: [main]
   pull_request:
-    branches: [master]
+    branches: [main]
   workflow_dispatch:
 
 env:
@@ -48,17 +48,17 @@ jobs:
       - name: Run benchmarks
         run: cmake --build --preset benchmarks-report
 
-      # Baseline: results of the latest successful run on master
+      # Baseline: results of the latest successful run on main
       - name: Download baseline
         id: baseline
         env:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
         run: |
-          run_id=$(gh run list --workflow benchmarks.yml --branch master --status success \
+          run_id=$(gh run list --workflow benchmarks.yml --branch main --status success \
             --limit 1 --json databaseId --jq '.[0].databaseId // empty')
           if [ -z "$run_id" ]; then
-            echo "::notice::No successful master run to compare against"
+            echo "::notice::No successful main run to compare against"
             exit 0
           fi
           if ! gh run download "$run_id" --name benchmark-results --dir baseline; then

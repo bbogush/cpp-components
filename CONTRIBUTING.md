@@ -41,4 +41,4 @@
   - **What was done**
   - **How it was tested**
   - Linked issues
-- Rebase on `master` to resolve conflicts. Do not merge `master` into the branch.
+- Rebase on `main` to resolve conflicts. Do not merge `main` into the branch.
