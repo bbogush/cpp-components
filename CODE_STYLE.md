@@ -69,7 +69,7 @@ and safety**.
   - [Lambda Expressions](#lambda-expressions)
   - [Template Metaprogramming](#template-metaprogramming)
   - [Concepts and Constraints](#concepts-and-constraints)
-  - [C++20 modules](#c20-modules)
+  - [Modules](#modules)
   - [Coroutines](#coroutines)
   - [Disallowed standard library features](#disallowed-standard-library-features)
   - [Third-party Libraries](#third-party-libraries)
@@ -142,7 +142,7 @@ and safety**.
 
 ## C++ Version
 
-- Target **C++20**.
+- Target **C++26**.
 - Avoid non-standard language extensions unless approved; see
   [Nonstandard Extensions](#nonstandard-extensions).
 
@@ -696,6 +696,7 @@ void Foo::disconnect()
 - Inputs: pass by value (cheap copies) or `const &` (read-only).
 - Outputs: non-optional outputs use references; optional outputs use pointers.
 - Place input arguments before output arguments.
+- Use `std::string_view` and `std::span` for non-owning inputs when appropriate.
 
 ```cpp
 // OK
@@ -784,16 +785,9 @@ auto x = (double)value;
 
 ### Streams
 
-- Prefer alternative facilities over streams for formatting, conversions, and logging due to
-  performance overhead and limited control over formatting.
+- Prefer `std::format`, `std::print`, and `std::println` over iostreams and the `printf` family.
 
 ```cpp
-// OK
-log_info("value={}", value);
-
-// Wrong
-std::cout << "value=" << value << "\n";
-
 // OK
 auto s = std::format("value={}", value);
 
@@ -859,7 +853,7 @@ size_t count = vec.size();
 
 ### Floating-Point Types
 
-- Use `float` and `double` only; avoid `long double`.
+- Use `float` and `double` only. Avoid `long double`.
 - Include a decimal point in literals (`1.0`, `0.5f`).
 
 ### Architecture Portability
@@ -1044,8 +1038,8 @@ std::vector names = { "a", "b" };
 
 ### Designated Initializers
 
-- Use designated initializers only in the form that is compatible with the C++20 standard: with
-  initializers in the same order as the corresponding fields appear in the struct definition.
+- Designated initializers stay in the same order as the members, with no designator skipped and no
+  nested designator.
 
 ```cpp
 // OK
@@ -1067,9 +1061,10 @@ Config cfg {
 
 - Prefer constraints over template metaprogramming.
 
-### C++20 modules
+### Modules
 
-- Not used in this project yet.
+- This project does not use modules. Keep headers, include guards, and `#include`.
+- Do not use `import std` or a named module.
 
 ### Coroutines
 
@@ -1099,7 +1094,7 @@ Config cfg {
 [[nodiscard]] int parse(const std::string &input);
 
 // OK - standard library / portable code
-int count = std::popcount(flags); // C++20
+int count = std::popcount(flags);
 
 // Wrong - vendor builtin in application code
 int count = __builtin_popcount(flags);
