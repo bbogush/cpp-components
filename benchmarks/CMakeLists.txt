@@ -15,7 +15,7 @@ FetchContent_Declare(
 
 FetchContent_MakeAvailable(googlebenchmark)
 
-set(CPP_COMPONENTS_BENCHMARK_EXECUTABLES "")
+set(PROJECT_BENCHMARK_EXECUTABLES "")
 
 add_subdirectory(executor)
 add_subdirectory(secure_websocket_client)
@@ -23,7 +23,7 @@ add_subdirectory(secure_websocket_client)
 set(BENCHMARK_RESULTS_DIR "${CMAKE_BINARY_DIR}/benchmark-results")
 
 set(_benchmark_run_commands)
-foreach(exe IN LISTS CPP_COMPONENTS_BENCHMARK_EXECUTABLES)
+foreach(exe IN LISTS PROJECT_BENCHMARK_EXECUTABLES)
   list(APPEND _benchmark_run_commands COMMAND "$<TARGET_FILE:${exe}>"
        "--benchmark_out=${BENCHMARK_RESULTS_DIR}/${exe}.json" --benchmark_out_format=json)
 endforeach()
@@ -31,8 +31,11 @@ endforeach()
 add_custom_target(
   benchmarks-report
   COMMAND "${CMAKE_COMMAND}" -E make_directory "${BENCHMARK_RESULTS_DIR}" ${_benchmark_run_commands}
-  DEPENDS ${CPP_COMPONENTS_BENCHMARK_EXECUTABLES}
   WORKING_DIRECTORY "${CMAKE_BINARY_DIR}"
   USES_TERMINAL
   COMMENT "Running all Google Benchmark targets"
   VERBATIM)
+
+if(PROJECT_BENCHMARK_EXECUTABLES)
+  add_dependencies(benchmarks-report ${PROJECT_BENCHMARK_EXECUTABLES})
+endif()

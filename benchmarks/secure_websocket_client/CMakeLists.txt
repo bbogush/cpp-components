@@ -24,6 +24,6 @@ add_secure_websocket_client_benchmark(secure_websocket_client_echo_benchmark ech
 add_secure_websocket_client_benchmark(secure_websocket_client_write_benchmark write_benchmark.cpp)
 add_secure_websocket_client_benchmark(secure_websocket_client_read_benchmark read_benchmark.cpp)
 
-set(CPP_COMPONENTS_BENCHMARK_EXECUTABLES
-    ${CPP_COMPONENTS_BENCHMARK_EXECUTABLES} ${_secure_websocket_client_benchmark_executables}
+set(PROJECT_BENCHMARK_EXECUTABLES
+    ${PROJECT_BENCHMARK_EXECUTABLES} ${_secure_websocket_client_benchmark_executables}
     PARENT_SCOPE)
