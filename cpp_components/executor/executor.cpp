@@ -5,10 +5,11 @@
 
 #include "executor.h"
 
+#include "cpp_components/logger/logger.h"
+
 #include <cerrno>
 #include <cstdlib>
 #include <exception>
-#include <iostream>
 #include <pthread.h>
 #include <sched.h>
 #include <sys/eventfd.h>
@@ -54,6 +55,16 @@ std::error_code Executor::start()
     return {};
 }
 
+namespace {
+
+void flush_log_and_abort()
+{
+    logger::flush_log();
+    std::abort();
+}
+
+} // namespace
+
 void Executor::run() noexcept
 {
     // Components do not throw, but a callback might. An exception escaping a handler would
@@ -62,11 +73,11 @@ void Executor::run() noexcept
     try {
         io_context.run();
     } catch (const std::exception &e) {
-        std::cerr << "Executor: unhandled exception in a callback: " << e.what() << '\n';
-        std::abort();
+        CPP_COMPONENTS_LOG_CRITICAL("Executor: unhandled exception in a callback: {}", e.what());
+        flush_log_and_abort();
     } catch (...) {
-        std::cerr << "Executor: unhandled unknown exception in a callback\n";
-        std::abort();
+        CPP_COMPONENTS_LOG_CRITICAL("Executor: unhandled unknown exception in a callback");
+        flush_log_and_abort();
     }
 }
 
@@ -220,7 +231,7 @@ void Executor::handle_doorbell(const boost::system::error_code &ec)
 {
     if (ec) {
         if (ec != boost::asio::error::operation_aborted) {
-            std::cerr << "Executor doorbell: " << ec.message() << '\n';
+            CPP_COMPONENTS_LOG_ERROR("Executor doorbell: {}", ec.message());
         }
         doorbell_armed.store(false, std::memory_order_relaxed);
         return;

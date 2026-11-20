@@ -126,6 +126,22 @@ TEST_F(LoggerTest, writes_string_ref_argument)
     EXPECT_NE(read_file(config.file_path).find("value referenced text"), std::string::npos);
 }
 
+TEST_F(LoggerTest, flush_log_writes_pending_messages)
+{
+    const auto config = make_config("app.log");
+    ASSERT_FALSE(logger::init(config));
+
+    CPP_COMPONENTS_LOG_INFO("flushed message");
+    logger::flush_log();
+
+    EXPECT_NE(read_file(config.file_path).find("flushed message"), std::string::npos);
+}
+
+TEST_F(LoggerTest, flush_log_is_noop_when_not_initialized)
+{
+    logger::flush_log();
+}
+
 TEST_F(LoggerTest, file_output_does_not_write_stdout)
 {
     const auto config = make_config("app.log");

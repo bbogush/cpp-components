@@ -127,6 +127,19 @@ std::error_code init(const Config &config)
     return {};
 }
 
+void flush_log()
+{
+    quill::Logger *logger = detail::logger_instance.load(std::memory_order_acquire);
+    if (logger == nullptr) {
+        return;
+    }
+
+    try {
+        logger->flush_log();
+    } catch (const std::exception &) {
+    }
+}
+
 void uninit()
 {
     quill::Logger *logger = detail::logger_instance.exchange(nullptr, std::memory_order_acq_rel);

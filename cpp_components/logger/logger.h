@@ -60,6 +60,7 @@ struct Config {
 
 std::error_code init(const Config &config);
 void uninit();
+void flush_log();
 
 namespace detail {
 
