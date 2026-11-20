@@ -140,6 +140,16 @@ void flush_log()
     }
 }
 
+std::error_code preallocate()
+{
+    try {
+        quill::Frontend::preallocate();
+    } catch (const std::exception &) {
+        return std::make_error_code(std::errc::not_enough_memory);
+    }
+    return {};
+}
+
 void uninit()
 {
     quill::Logger *logger = detail::logger_instance.exchange(nullptr, std::memory_order_acq_rel);

@@ -10,6 +10,7 @@
 #include <unistd.h>
 
 #include <cctype>
+#include <chrono>
 #include <cstddef>
 #include <filesystem>
 #include <fstream>
@@ -17,6 +18,7 @@
 #include <string>
 #include <string_view>
 #include <system_error>
+#include <thread>
 
 namespace {
 
@@ -55,6 +57,16 @@ protected:
 
     std::filesystem::path dir;
 };
+
+size_t count_occurrences(std::string_view text, std::string_view pattern)
+{
+    size_t count = 0;
+    for (auto pos = text.find(pattern); pos != std::string_view::npos;
+        pos = text.find(pattern, pos + pattern.size())) {
+        ++count;
+    }
+    return count;
+}
 
 // 'd' matches any digit; other characters must match exactly.
 bool matches_mask(std::string_view text, std::string_view mask)
@@ -375,4 +387,121 @@ TEST_F(LoggerTest, rotates_without_backups_when_max_backup_files_is_zero)
     EXPECT_FALSE(std::filesystem::exists(dir / "app.1.log"));
     EXPECT_LE(std::filesystem::file_size(dir / "app.log"), config.max_file_size);
     EXPECT_NE(read_file(dir / "app.log").find("rotation message number 199"), std::string::npos);
+}
+
+TEST_F(LoggerTest, trace_level_writes_trace)
+{
+    auto config = make_config("app.log");
+    config.level = logger::Level::trace;
+    ASSERT_FALSE(logger::init(config));
+
+    CPP_COMPONENTS_LOG_TRACE("trace message");
+    logger::uninit();
+
+    EXPECT_NE(read_file(config.file_path).find("trace message"), std::string::npos);
+}
+
+TEST_F(LoggerTest, preallocate_succeeds_with_and_without_init)
+{
+    EXPECT_FALSE(logger::preallocate());
+
+    ASSERT_FALSE(logger::init(make_config("app.log")));
+    EXPECT_FALSE(logger::preallocate());
+}
+
+TEST_F(LoggerTest, preallocate_on_new_thread_keeps_logging)
+{
+    const auto config = make_config("app.log");
+    ASSERT_FALSE(logger::init(config));
+
+    std::error_code error;
+    std::thread thread { [&error] {
+        error = logger::preallocate();
+        CPP_COMPONENTS_LOG_INFO("preallocated thread message");
+    } };
+    thread.join();
+    logger::uninit();
+
+    EXPECT_FALSE(error);
+    EXPECT_NE(read_file(config.file_path).find("preallocated thread message"), std::string::npos);
+}
+
+TEST_F(LoggerTest, limit_macros_are_noop_when_not_initialized)
+{
+    CPP_COMPONENTS_LOG_WARN_LIMIT(std::chrono::hours { 1 }, "dropped {}", 1);
+}
+
+TEST_F(LoggerTest, limit_macros_write_every_level)
+{
+    auto config = make_config("app.log");
+    config.level = logger::Level::trace;
+    ASSERT_FALSE(logger::init(config));
+
+    constexpr auto interval = std::chrono::hours { 1 };
+    CPP_COMPONENTS_LOG_TRACE_LIMIT(interval, "trace limited");
+    CPP_COMPONENTS_LOG_DEBUG_LIMIT(interval, "debug limited");
+    CPP_COMPONENTS_LOG_INFO_LIMIT(interval, "info limited");
+    CPP_COMPONENTS_LOG_WARN_LIMIT(interval, "warn limited");
+    CPP_COMPONENTS_LOG_ERROR_LIMIT(interval, "error limited");
+    CPP_COMPONENTS_LOG_CRITICAL_LIMIT(interval, "critical limited");
+    logger::uninit();
+
+    const auto content = read_file(config.file_path);
+    EXPECT_NE(content.find("trace limited (1x)"), std::string::npos) << content;
+    EXPECT_NE(content.find(" LOG_DEBUG "), std::string::npos) << content;
+    EXPECT_NE(content.find("debug limited (1x)"), std::string::npos) << content;
+    EXPECT_NE(content.find("info limited (1x)"), std::string::npos) << content;
+    EXPECT_NE(content.find(" LOG_WARNING "), std::string::npos) << content;
+    EXPECT_NE(content.find("warn limited (1x)"), std::string::npos) << content;
+    EXPECT_NE(content.find("error limited (1x)"), std::string::npos) << content;
+    EXPECT_NE(content.find(" LOG_CRITICAL "), std::string::npos) << content;
+    EXPECT_NE(content.find("critical limited (1x)"), std::string::npos) << content;
+}
+
+TEST_F(LoggerTest, limit_macro_respects_level)
+{
+    const auto config = make_config("app.log");
+    ASSERT_FALSE(logger::init(config));
+
+    CPP_COMPONENTS_LOG_DEBUG_LIMIT(std::chrono::hours { 1 }, "debug limited");
+    logger::uninit();
+
+    EXPECT_EQ(read_file(config.file_path).find("debug limited"), std::string::npos);
+}
+
+TEST_F(LoggerTest, limit_macro_drops_calls_within_interval)
+{
+    constexpr size_t call_count = 5;
+    const auto config = make_config("app.log");
+    ASSERT_FALSE(logger::init(config));
+
+    for (size_t i = 0; i < call_count; ++i) {
+        CPP_COMPONENTS_LOG_WARN_LIMIT(std::chrono::hours { 1 }, "limited message {}", i);
+    }
+    logger::uninit();
+
+    const auto content = read_file(config.file_path);
+    EXPECT_EQ(count_occurrences(content, "limited message"), 1U) << content;
+    EXPECT_NE(content.find("limited message 0 (1x)"), std::string::npos) << content;
+}
+
+TEST_F(LoggerTest, limit_macro_reports_dropped_calls_after_interval)
+{
+    constexpr size_t burst_count = 3;
+    constexpr auto interval = std::chrono::milliseconds { 200 };
+    const auto config = make_config("app.log");
+    ASSERT_FALSE(logger::init(config));
+
+    for (size_t i = 0; i < burst_count + 1; ++i) {
+        if (i == burst_count) {
+            std::this_thread::sleep_for(interval + std::chrono::milliseconds { 50 });
+        }
+        CPP_COMPONENTS_LOG_WARN_LIMIT(interval, "limited message {}", i);
+    }
+    logger::uninit();
+
+    const auto content = read_file(config.file_path);
+    EXPECT_EQ(count_occurrences(content, "limited message"), 2U) << content;
+    EXPECT_NE(content.find("limited message 0 (1x)"), std::string::npos) << content;
+    EXPECT_NE(content.find("limited message 3 (3x)"), std::string::npos) << content;
 }
