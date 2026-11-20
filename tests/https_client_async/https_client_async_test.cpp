@@ -443,6 +443,13 @@ TEST(HttpsClientAsyncTest, request_supports_remaining_http_methods)
         { HttpMethod::patch, boost::beast::http::verb::patch   },
     };
 
+    // One executor and client for all cases: each io_context owns an io_uring
+    // ring, and creating rings in a tight loop can make io_uring_queue_init fail.
+    cpp_components::executor::Executor executor {};
+    ASSERT_FALSE(executor.start());
+    auto client = cpp_components::https_client_async::HttpsClientAsync::create(executor);
+    client->set_ca_certificate(TEST_CERT_DIR "/test-cert.pem");
+
     for (const auto &test_case : cases) {
         const auto port = start_https_server(
             [expected = test_case.expected](const auto &request, auto &response) {
@@ -452,11 +459,6 @@ TEST(HttpsClientAsyncTest, request_supports_remaining_http_methods)
             });
         const auto port_string = std::to_string(port);
 
-        cpp_components::executor::Executor executor {};
-        ASSERT_FALSE(executor.start());
-        auto client = cpp_components::https_client_async::HttpsClientAsync::create(executor);
-        client->set_ca_certificate(TEST_CERT_DIR "/test-cert.pem");
-
         std::promise<std::error_code> result;
         const auto result_future = result.get_future().share();
         client->request(test_case.method, "localhost", port_string, "/", {}, {},
@@ -465,8 +467,8 @@ TEST(HttpsClientAsyncTest, request_supports_remaining_http_methods)
 
         ASSERT_TRUE(wait_ready(result_future));
         EXPECT_FALSE(result_future.get());
-        executor.stop();
     }
+    executor.stop();
 }
 
 TEST(HttpsClientAsyncTest, ssl_handshake_failure_is_reported)
