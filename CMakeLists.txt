@@ -16,6 +16,16 @@ if(ENABLE_CLANG_TIDY OR ENABLE_CPPCHECK)
   set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 endif()
 
+# clangd reads build/compile_commands.json. Link it to the last configured preset.
+cmake_path(GET CMAKE_BINARY_DIR PARENT_PATH _build_root)
+if(CMAKE_EXPORT_COMPILE_COMMANDS
+   AND PROJECT_IS_TOP_LEVEL
+   AND _build_root STREQUAL "${CMAKE_SOURCE_DIR}/build")
+  cmake_path(GET CMAKE_BINARY_DIR FILENAME _preset_dir)
+  file(CREATE_LINK "${_preset_dir}/compile_commands.json" "${_build_root}/compile_commands.json"
+       SYMBOLIC)
+endif()
+
 if(ENABLE_TSAN)
   # "atomic_thread_fence" is not supported with "-fsanitize=thread"
   add_compile_options(-Wno-error=tsan)
