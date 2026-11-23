@@ -7,6 +7,9 @@
   - Header guards: `#ifndef`/`#define`/`#endif`, never `#pragma once`.
   - Rule of Five: declaring any of the five special members requires declaring all five.
   - Comments: only for non-obvious functionality; explain **why**, not **what**.
+  - Do not add trailing underscores `_` for data members.
+  - Do not prefix fixed-width integer and size types with `std::`: use `uint8_t`, `uint64_t`,
+    `size_t`, not `std::uint8_t`, `std::uint64_t`, `std::size_t`.
 - Make only changes necessary to fulfill the task. Avoid unrelated refactoring.
 - Update tests and documentation when required by the changes.
 - If requirements are ambiguous, ask before guessing.
