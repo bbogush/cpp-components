@@ -62,7 +62,7 @@ size_t count_occurrences(std::string_view text, std::string_view pattern)
 {
     size_t count = 0;
     for (auto pos = text.find(pattern); pos != std::string_view::npos;
-         pos = text.find(pattern, pos + pattern.size())) {
+        pos = text.find(pattern, pos + pattern.size())) {
         ++count;
     }
     return count;
