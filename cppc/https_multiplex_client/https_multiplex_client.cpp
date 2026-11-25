@@ -245,6 +245,7 @@ void HttpsMultiplexClient::do_cancel()
 
     auto outstanding = std::move(connections);
     connections.clear();
+    pending.store(0, std::memory_order_release);
 
     for (auto &entry : outstanding) {
         auto &conn = entry.second;
@@ -256,8 +257,6 @@ void HttpsMultiplexClient::do_cancel()
             handler(std::make_error_code(std::errc::operation_canceled), {});
         }
     }
-
-    pending.store(0, std::memory_order_release);
 
     for (auto &entry : socket_map) {
         boost::system::error_code ec;
