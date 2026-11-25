@@ -8,6 +8,7 @@
 #include <quill/Backend.h>
 #include <quill/Frontend.h>
 #include <quill/core/LogLevel.h>
+#include <quill/core/PatternFormatterOptions.h>
 #include <quill/sinks/ConsoleSink.h>
 #include <quill/sinks/RotatingFileSink.h>
 
@@ -21,6 +22,10 @@ namespace cpp_components::logger {
 namespace {
 
 constexpr size_t min_file_size = 512;
+
+// Quill default pattern without %(logger): only one logger exists, so its name adds no information.
+constexpr const char *format_pattern =
+    "%(time) [%(thread_id)] %(short_source_location:<28) LOG_%(log_level:<9) %(message)%(mdc)";
 
 quill::LogLevel to_quill_level(Level level)
 {
@@ -102,7 +107,8 @@ quill::Logger *create_logger(const Config &config)
             config.file_path.string(), make_sink_config(config)));
     }
 
-    quill::Logger *logger = quill::Frontend::create_logger(config.name, std::move(sinks));
+    quill::Logger *logger = quill::Frontend::create_logger(config.name, std::move(sinks),
+        quill::PatternFormatterOptions { format_pattern });
     logger->set_log_level(to_quill_level(config.level));
     return logger;
 }

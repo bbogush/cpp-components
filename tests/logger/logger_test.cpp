@@ -107,7 +107,7 @@ TEST_F(LoggerTest, default_config_logs_to_stdout)
     EXPECT_NE(output.find("stdout message 7"), std::string::npos) << output;
 }
 
-TEST_F(LoggerTest, writes_message_with_quill_default_format)
+TEST_F(LoggerTest, writes_message_without_logger_name)
 {
     const auto config = make_config("app.log");
     ASSERT_FALSE(logger::init(config));
@@ -117,12 +117,11 @@ TEST_F(LoggerTest, writes_message_with_quill_default_format)
 
     const auto content = read_file(config.file_path);
     const std::string_view time_mask = "dd:dd:dd.ddddddddd [";
-    const std::string_view suffix = " cpp_components hello 42\n";
+    const std::string_view suffix = " LOG_INFO      hello 42\n";
     ASSERT_GT(content.size(), time_mask.size() + suffix.size()) << content;
     const std::string_view line = content;
     EXPECT_TRUE(matches_mask(line.substr(0, time_mask.size()), time_mask)) << content;
     EXPECT_NE(line.find("] logger_test.cpp:"), std::string_view::npos) << content;
-    EXPECT_NE(line.find(" LOG_INFO "), std::string_view::npos) << content;
     EXPECT_TRUE(line.ends_with(suffix)) << content;
 }
 
