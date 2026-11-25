@@ -8,7 +8,7 @@
 #include <algorithm>
 #include <utility>
 
-namespace cpp_components::secure_websocket_client {
+namespace cppc::secure_websocket_client {
 
 // cppcheck-suppress duplInheritedMember
 std::shared_ptr<ReconnectingSecureWebSocketClient> ReconnectingSecureWebSocketClient::create(
@@ -212,4 +212,4 @@ bool ReconnectingSecureWebSocketClient::is_reconnect_active() const
         current_state == State::waiting_reconnect;
 }
 
-} // namespace cpp_components::secure_websocket_client
+} // namespace cppc::secure_websocket_client

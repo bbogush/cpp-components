@@ -3,10 +3,10 @@
  *  it under the terms of the Apache License Version 2.0.
  */
 
-#ifndef CPP_COMPONENTS_TIMER_H
-#define CPP_COMPONENTS_TIMER_H
+#ifndef CPPC_TIMER_H
+#define CPPC_TIMER_H
 
-#include "cpp_components/executor/executor.h"
+#include "cppc/executor/executor.h"
 
 #include <boost/asio/steady_timer.hpp>
 
@@ -15,7 +15,7 @@
 #include <functional>
 #include <system_error>
 
-namespace cpp_components::timer {
+namespace cppc::timer {
 
 class Timer {
 public:
@@ -40,6 +40,6 @@ private:
     boost::asio::steady_timer timer;
 };
 
-} // namespace cpp_components::timer
+} // namespace cppc::timer
 
-#endif // CPP_COMPONENTS_TIMER_H
+#endif // CPPC_TIMER_H

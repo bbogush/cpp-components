@@ -5,7 +5,7 @@
 
 #include "secure_websocket_client.h"
 
-#include "cpp_components/logger/logger.h"
+#include "cppc/logger/logger.h"
 
 #include <boost/asio/bind_allocator.hpp>
 #include <boost/asio/connect.hpp>
@@ -19,7 +19,7 @@
 #include <chrono>
 #include <utility>
 
-namespace cpp_components::secure_websocket_client {
+namespace cppc::secure_websocket_client {
 
 namespace {
 
@@ -46,13 +46,11 @@ SecureWebSocketClient::SecureWebSocketClient(executor::Executor &executor) :
     boost::system::error_code ec;
     ssl_context.set_default_verify_paths(ec);
     if (ec) {
-        CPP_COMPONENTS_LOG_ERROR("SecureWebSocketClient: failed to load default CA paths: {}",
-            ec.message());
+        CPPC_LOG_ERROR("SecureWebSocketClient: failed to load default CA paths: {}", ec.message());
     }
     ssl_context.set_verify_mode(ssl::verify_peer, ec);
     if (ec) {
-        CPP_COMPONENTS_LOG_ERROR("SecureWebSocketClient: failed to set verify mode: {}",
-            ec.message());
+        CPPC_LOG_ERROR("SecureWebSocketClient: failed to set verify mode: {}", ec.message());
     }
 }
 
@@ -634,4 +632,4 @@ void SecureWebSocketClient::handle_read_timeout(const std::error_code &ec)
     handle_unexpected_disconnect(std::make_error_code(std::errc::timed_out));
 }
 
-} // namespace cpp_components::secure_websocket_client
+} // namespace cppc::secure_websocket_client

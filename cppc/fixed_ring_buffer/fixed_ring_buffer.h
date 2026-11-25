@@ -3,8 +3,8 @@
  *  it under the terms of the Apache License Version 2.0.
  */
 
-#ifndef CPP_COMPONENTS_FIXED_RING_BUFFER_H
-#define CPP_COMPONENTS_FIXED_RING_BUFFER_H
+#ifndef CPPC_FIXED_RING_BUFFER_H
+#define CPPC_FIXED_RING_BUFFER_H
 
 #include <array>
 #include <bit>
@@ -13,7 +13,7 @@
 #include <cstdint>
 #include <utility>
 
-namespace cpp_components::fixed_ring_buffer {
+namespace cppc::fixed_ring_buffer {
 
 // Fixed-capacity FIFO queue that never allocates, moves, or copies its elements.
 //
@@ -103,6 +103,6 @@ private:
     uint64_t tail = 0; // next free element index
 };
 
-} // namespace cpp_components::fixed_ring_buffer
+} // namespace cppc::fixed_ring_buffer
 
-#endif // CPP_COMPONENTS_FIXED_RING_BUFFER_H
+#endif // CPPC_FIXED_RING_BUFFER_H

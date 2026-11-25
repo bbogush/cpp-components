@@ -3,10 +3,10 @@
  *  it under the terms of the Apache License Version 2.0.
  */
 
-#ifndef CPP_COMPONENTS_HTTPS_CLIENT_ASYNC_H
-#define CPP_COMPONENTS_HTTPS_CLIENT_ASYNC_H
+#ifndef CPPC_HTTPS_CLIENT_ASYNC_H
+#define CPPC_HTTPS_CLIENT_ASYNC_H
 
-#include "cpp_components/executor/executor.h"
+#include "cppc/executor/executor.h"
 
 #include <boost/asio/ip/tcp.hpp>
 #include <boost/asio/ssl.hpp>
@@ -23,7 +23,7 @@
 #include <system_error>
 #include <vector>
 
-namespace cpp_components::https_client_async {
+namespace cppc::https_client_async {
 
 enum class HttpMethod {
     get,
@@ -124,6 +124,6 @@ private:
     uint64_t request_generation = 0;
 };
 
-} // namespace cpp_components::https_client_async
+} // namespace cppc::https_client_async
 
-#endif // CPP_COMPONENTS_HTTPS_CLIENT_ASYNC_H
+#endif // CPPC_HTTPS_CLIENT_ASYNC_H

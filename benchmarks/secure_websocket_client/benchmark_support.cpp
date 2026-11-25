@@ -132,7 +132,7 @@ uint16_t start_secure_push_server()
     return start_secure_server(run_secure_push_session);
 }
 
-bool connect_client(cpp_components::secure_websocket_client::SecureWebSocketClient &client,
+bool connect_client(cppc::secure_websocket_client::SecureWebSocketClient &client,
     const std::string &port_string)
 {
     std::promise<void> connected;
@@ -146,7 +146,7 @@ bool connect_client(cpp_components::secure_websocket_client::SecureWebSocketClie
     return wait_ready(connected_future) && client.is_connected();
 }
 
-void close_client(cpp_components::secure_websocket_client::SecureWebSocketClient &client)
+void close_client(cppc::secure_websocket_client::SecureWebSocketClient &client)
 {
     if (!client.is_connected()) {
         return;

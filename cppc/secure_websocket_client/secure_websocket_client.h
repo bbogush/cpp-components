@@ -3,12 +3,12 @@
  *  it under the terms of the Apache License Version 2.0.
  */
 
-#ifndef CPP_COMPONENTS_SECURE_WEBSOCKET_CLIENT_H
-#define CPP_COMPONENTS_SECURE_WEBSOCKET_CLIENT_H
+#ifndef CPPC_SECURE_WEBSOCKET_CLIENT_H
+#define CPPC_SECURE_WEBSOCKET_CLIENT_H
 
-#include "cpp_components/executor/executor.h"
-#include "cpp_components/fixed_ring_buffer/fixed_ring_buffer.h"
-#include "cpp_components/timer/timer.h"
+#include "cppc/executor/executor.h"
+#include "cppc/fixed_ring_buffer/fixed_ring_buffer.h"
+#include "cppc/timer/timer.h"
 
 #include <boost/asio/ip/tcp.hpp>
 #include <boost/asio/ssl.hpp>
@@ -28,7 +28,7 @@
 #include <string>
 #include <system_error>
 
-namespace cpp_components::secure_websocket_client {
+namespace cppc::secure_websocket_client {
 
 class SecureWebSocketClient : public std::enable_shared_from_this<SecureWebSocketClient> {
 public:
@@ -180,6 +180,6 @@ private:
     std::chrono::steady_clock::time_point last_read_time;
 };
 
-} // namespace cpp_components::secure_websocket_client
+} // namespace cppc::secure_websocket_client
 
-#endif // CPP_COMPONENTS_SECURE_WEBSOCKET_CLIENT_H
+#endif // CPPC_SECURE_WEBSOCKET_CLIENT_H

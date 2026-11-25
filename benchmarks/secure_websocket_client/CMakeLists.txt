@@ -11,7 +11,7 @@ function(add_secure_websocket_client_benchmark target source)
   target_link_libraries(${target} PRIVATE project_features)
   target_link_libraries(${target} PRIVATE benchmark::benchmark)
   target_link_libraries(${target} PRIVATE benchmark::benchmark_main)
-  target_link_libraries(${target} PRIVATE cpp_components)
+  target_link_libraries(${target} PRIVATE cppc)
   target_link_libraries(${target} PRIVATE OpenSSL::SSL)
 
   target_compile_definitions(

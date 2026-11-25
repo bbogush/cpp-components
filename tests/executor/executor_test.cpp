@@ -3,7 +3,7 @@
  *  it under the terms of the Apache License Version 2.0.
  */
 
-#include "cpp_components/executor/executor.h"
+#include "cppc/executor/executor.h"
 
 #include <gtest/gtest.h>
 
@@ -33,7 +33,7 @@ TEST(ExecutorTest, post_runs_callback)
     std::promise<void> done;
     const auto done_future = done.get_future().share();
 
-    cpp_components::executor::Executor executor {};
+    cppc::executor::Executor executor {};
     ASSERT_FALSE(executor.start());
     executor.post([&done]() { done.set_value(); });
 
@@ -46,7 +46,7 @@ TEST(ExecutorTest, dispatch_runs_callback)
     std::promise<void> done;
     const auto done_future = done.get_future().share();
 
-    cpp_components::executor::Executor executor {};
+    cppc::executor::Executor executor {};
     ASSERT_FALSE(executor.start());
     executor.dispatch([&done]() { done.set_value(); });
 
@@ -60,7 +60,7 @@ TEST(ExecutorTest, post_runs_on_executor_thread)
     const auto executor_thread_id_future = executor_thread_id.get_future().share();
     const auto main_thread_id = std::this_thread::get_id();
 
-    cpp_components::executor::Executor executor {};
+    cppc::executor::Executor executor {};
     ASSERT_FALSE(executor.start());
     executor.post(
         [&executor_thread_id]() { executor_thread_id.set_value(std::this_thread::get_id()); });
@@ -75,7 +75,7 @@ TEST(ExecutorTest, get_context_accepts_posted_handlers)
     std::promise<void> done;
     const auto done_future = done.get_future().share();
 
-    cpp_components::executor::Executor executor {};
+    cppc::executor::Executor executor {};
     ASSERT_FALSE(executor.start());
     boost::asio::post(executor.get_context(), [&done]() { done.set_value(); });
 
@@ -91,7 +91,7 @@ TEST(ExecutorTest, graceful_stop_drains_posted_handlers)
     std::promise<void> last_handler_done;
     const auto last_handler_done_future = last_handler_done.get_future().share();
 
-    cpp_components::executor::Executor executor {};
+    cppc::executor::Executor executor {};
     ASSERT_FALSE(executor.start());
     for (int i = 0; i < handler_count; ++i) {
         executor.post([&completed_handlers]() { completed_handlers.fetch_add(1); });
@@ -109,7 +109,7 @@ TEST(ExecutorTest, graceful_stop_from_executor_thread_does_not_deadlock)
     std::promise<void> stopped;
     const auto stopped_future = stopped.get_future().share();
 
-    cpp_components::executor::Executor executor {};
+    cppc::executor::Executor executor {};
     ASSERT_FALSE(executor.start());
     executor.post([&executor, &stopped]() {
         executor.stop();
@@ -124,7 +124,7 @@ TEST(ExecutorTest, force_stop_from_executor_thread_does_not_deadlock)
     std::promise<void> stopped;
     const auto stopped_future = stopped.get_future().share();
 
-    cpp_components::executor::Executor executor {};
+    cppc::executor::Executor executor {};
     ASSERT_FALSE(executor.start());
     executor.post([&executor, &stopped]() {
         executor.stop(true);
@@ -136,7 +136,7 @@ TEST(ExecutorTest, force_stop_from_executor_thread_does_not_deadlock)
 
 TEST(ExecutorTest, double_stop_is_idempotent)
 {
-    cpp_components::executor::Executor executor {};
+    cppc::executor::Executor executor {};
     ASSERT_FALSE(executor.start());
     executor.stop();
     executor.stop();
@@ -148,7 +148,7 @@ TEST(ExecutorTest, force_stop_from_another_thread)
     std::promise<void> handler_done;
     const auto handler_done_future = handler_done.get_future().share();
 
-    cpp_components::executor::Executor executor {};
+    cppc::executor::Executor executor {};
     ASSERT_FALSE(executor.start());
     executor.post([&handler_done]() { handler_done.set_value(); });
 
@@ -167,7 +167,7 @@ TEST(ExecutorTest, force_stop_from_another_thread)
 
 TEST(ExecutorTest, set_priority_rejects_invalid_value)
 {
-    cpp_components::executor::Executor executor {};
+    cppc::executor::Executor executor {};
     ASSERT_FALSE(executor.start());
     EXPECT_EQ(executor.set_priority(-1), std::make_error_code(std::errc::invalid_argument));
     EXPECT_EQ(executor.set_priority(executor.get_max_priority() + 1),
@@ -177,7 +177,7 @@ TEST(ExecutorTest, set_priority_rejects_invalid_value)
 
 TEST(ExecutorTest, set_priority_rejects_stopped_executor)
 {
-    cpp_components::executor::Executor executor {};
+    cppc::executor::Executor executor {};
     ASSERT_FALSE(executor.start());
     executor.stop();
 
@@ -186,7 +186,7 @@ TEST(ExecutorTest, set_priority_rejects_stopped_executor)
 
 TEST(ExecutorTest, set_priority_zero_uses_other_policy)
 {
-    cpp_components::executor::Executor executor {};
+    cppc::executor::Executor executor {};
     ASSERT_FALSE(executor.start());
 
     ASSERT_FALSE(executor.set_priority(0));
@@ -200,7 +200,7 @@ TEST(ExecutorTest, set_priority_zero_uses_other_policy)
 
 TEST(ExecutorTest, get_priority_returns_current_value)
 {
-    cpp_components::executor::Executor executor {};
+    cppc::executor::Executor executor {};
     ASSERT_FALSE(executor.start());
 
     int priority = -1;
@@ -212,7 +212,7 @@ TEST(ExecutorTest, get_priority_returns_current_value)
 
 TEST(ExecutorTest, get_priority_rejects_stopped_executor)
 {
-    cpp_components::executor::Executor executor {};
+    cppc::executor::Executor executor {};
     ASSERT_FALSE(executor.start());
     executor.stop();
 
@@ -222,7 +222,7 @@ TEST(ExecutorTest, get_priority_rejects_stopped_executor)
 
 TEST(ExecutorTest, set_cpu_affinity_rejects_invalid_value)
 {
-    cpp_components::executor::Executor executor {};
+    cppc::executor::Executor executor {};
     ASSERT_FALSE(executor.start());
     EXPECT_EQ(executor.set_cpu_affinity(SIZE_MAX),
         std::make_error_code(std::errc::invalid_argument));
@@ -231,7 +231,7 @@ TEST(ExecutorTest, set_cpu_affinity_rejects_invalid_value)
 
 TEST(ExecutorTest, set_cpu_affinity_rejects_stopped_executor)
 {
-    cpp_components::executor::Executor executor {};
+    cppc::executor::Executor executor {};
     ASSERT_FALSE(executor.start());
     executor.stop();
 
@@ -240,7 +240,7 @@ TEST(ExecutorTest, set_cpu_affinity_rejects_stopped_executor)
 
 TEST(ExecutorTest, set_cpu_affinity_binds_to_cpu_zero)
 {
-    cpp_components::executor::Executor executor {};
+    cppc::executor::Executor executor {};
     ASSERT_FALSE(executor.start());
 
     ASSERT_FALSE(executor.set_cpu_affinity(0));
@@ -253,7 +253,7 @@ TEST(ExecutorTest, thread_control_rejects_executor_stopped_from_its_thread)
     std::promise<void> checked;
     const auto checked_future = checked.get_future().share();
 
-    cpp_components::executor::Executor executor {};
+    cppc::executor::Executor executor {};
     ASSERT_FALSE(executor.start());
     executor.post([&executor, &checked]() {
         executor.stop();
@@ -270,7 +270,7 @@ TEST(ExecutorTest, thread_control_rejects_executor_stopped_from_its_thread)
 
 TEST(ExecutorTest, ring_without_doorbell_handler_is_noop)
 {
-    cpp_components::executor::Executor executor {};
+    cppc::executor::Executor executor {};
     ASSERT_FALSE(executor.start());
     executor.ring();
     executor.stop();
@@ -278,9 +278,7 @@ TEST(ExecutorTest, ring_without_doorbell_handler_is_noop)
 
 TEST(ExecutorTest, empty_doorbell_handler_means_no_doorbell)
 {
-    cpp_components::executor::Executor executor {
-        cpp_components::executor::Executor::DoorbellHandler {}
-    };
+    cppc::executor::Executor executor { cppc::executor::Executor::DoorbellHandler {} };
     ASSERT_FALSE(executor.start());
     executor.ring();
     executor.stop();
@@ -292,7 +290,7 @@ TEST(ExecutorTest, doorbell_handler_runs_on_executor_thread_after_ring)
     std::promise<std::thread::id> handler_thread_id;
     const auto handler_thread_id_future = handler_thread_id.get_future().share();
 
-    cpp_components::executor::Executor executor { [&pushed, &handler_thread_id]() {
+    cppc::executor::Executor executor { [&pushed, &handler_thread_id]() {
         if (pushed.exchange(false)) {
             handler_thread_id.set_value(std::this_thread::get_id());
         }
@@ -312,7 +310,7 @@ TEST(ExecutorTest, doorbell_handler_is_not_called_without_ring)
 {
     std::atomic<int> calls { 0 };
 
-    cpp_components::executor::Executor executor { [&calls]() {
+    cppc::executor::Executor executor { [&calls]() {
         calls.fetch_add(1);
         return false;
     } };
@@ -335,7 +333,7 @@ TEST(ExecutorTest, doorbell_handler_runs_again_while_work_remains)
     std::promise<void> drained;
     const auto drained_future = drained.get_future().share();
 
-    cpp_components::executor::Executor executor { [&remaining, &drained]() {
+    cppc::executor::Executor executor { [&remaining, &drained]() {
         if (remaining.load() == 0) {
             return false;
         }
@@ -362,7 +360,7 @@ TEST(ExecutorTest, doorbell_does_not_lose_wakeups)
     std::atomic<uint64_t> produced { 0 };
     std::atomic<uint64_t> consumed { 0 };
 
-    cpp_components::executor::Executor executor { [&produced, &consumed]() {
+    cppc::executor::Executor executor { [&produced, &consumed]() {
         consumed.store(produced.load(std::memory_order_acquire), std::memory_order_release);
         return false;
     } };
@@ -395,7 +393,7 @@ TEST(ExecutorTest, graceful_stop_with_doorbell_handler_does_not_hang)
     std::promise<void> stopped;
     const auto stopped_future = stopped.get_future().share();
 
-    cpp_components::executor::Executor executor { []() { return false; } };
+    cppc::executor::Executor executor { []() { return false; } };
     ASSERT_FALSE(executor.start());
 
     std::thread stopper([&executor, &stopped]() {
@@ -411,11 +409,11 @@ TEST(ExecutorTest, graceful_stop_from_doorbell_handler_does_not_deadlock)
 {
     std::atomic<bool> pushed { false };
     // The handler needs the executor, which exists only after the handler is passed in.
-    cpp_components::executor::Executor *self = nullptr;
+    cppc::executor::Executor *self = nullptr;
     std::promise<void> stopped;
     const auto stopped_future = stopped.get_future().share();
 
-    cpp_components::executor::Executor executor { [&self, &pushed, &stopped]() {
+    cppc::executor::Executor executor { [&self, &pushed, &stopped]() {
         if (pushed.exchange(false)) {
             self->stop();
             stopped.set_value();
@@ -438,7 +436,7 @@ TEST(ExecutorTest, destroying_executor_with_doorbell_handler_does_not_hang)
 
     std::thread owner([&destroyed]() {
         {
-            cpp_components::executor::Executor executor { []() { return false; } };
+            cppc::executor::Executor executor { []() { return false; } };
             ASSERT_FALSE(executor.start());
             executor.ring();
         }
@@ -455,7 +453,7 @@ TEST(ExecutorTest, doorbell_handler_is_not_called_after_stop)
     std::promise<void> rung;
     const auto rung_future = rung.get_future().share();
 
-    cpp_components::executor::Executor executor { [&calls]() {
+    cppc::executor::Executor executor { [&calls]() {
         calls.fetch_add(1);
         return false;
     } };
@@ -476,9 +474,9 @@ TEST(ExecutorTest, doorbell_handler_is_not_called_after_stop)
 TEST(ExecutorTest, doorbell_handler_with_remaining_work_is_not_called_after_stop)
 {
     std::atomic<int> calls { 0 };
-    cpp_components::executor::Executor *self = nullptr;
+    cppc::executor::Executor *self = nullptr;
 
-    cpp_components::executor::Executor executor { [&self, &calls]() {
+    cppc::executor::Executor executor { [&self, &calls]() {
         // Stops on the first call but reports remaining work, which would call it again.
         if (calls.fetch_add(1) == 0) {
             self->stop();
@@ -502,7 +500,7 @@ TEST(ExecutorTest, doorbell_handler_with_remaining_work_is_not_called_after_stop
 
 TEST(ExecutorTest, start_rejects_second_start)
 {
-    cpp_components::executor::Executor executor {};
+    cppc::executor::Executor executor {};
     ASSERT_FALSE(executor.start());
     EXPECT_EQ(executor.start(), std::make_error_code(std::errc::invalid_argument));
     executor.stop();
@@ -510,14 +508,14 @@ TEST(ExecutorTest, start_rejects_second_start)
 
 TEST(ExecutorTest, start_rejects_stopped_executor)
 {
-    cpp_components::executor::Executor executor {};
+    cppc::executor::Executor executor {};
     executor.stop();
     EXPECT_EQ(executor.start(), std::make_error_code(std::errc::invalid_argument));
 }
 
 TEST(ExecutorTest, executor_can_be_destroyed_without_start)
 {
-    cpp_components::executor::Executor executor { []() { return false; } };
+    cppc::executor::Executor executor { []() { return false; } };
     executor.ring();
 }
 
@@ -526,7 +524,7 @@ TEST(ExecutorTest, callback_posted_before_start_runs_after_start)
     std::promise<void> done;
     const auto done_future = done.get_future().share();
 
-    cpp_components::executor::Executor executor {};
+    cppc::executor::Executor executor {};
     executor.post([&done]() { done.set_value(); });
     EXPECT_EQ(done_future.wait_for(std::chrono::milliseconds { 50 }), std::future_status::timeout);
 
@@ -537,7 +535,7 @@ TEST(ExecutorTest, callback_posted_before_start_runs_after_start)
 
 TEST(ExecutorTest, thread_control_rejects_executor_not_started)
 {
-    cpp_components::executor::Executor executor {};
+    cppc::executor::Executor executor {};
     int priority = -1;
     EXPECT_EQ(executor.set_priority(0), std::make_error_code(std::errc::invalid_argument));
     EXPECT_EQ(executor.get_priority(priority), std::make_error_code(std::errc::invalid_argument));
@@ -548,7 +546,7 @@ TEST(ExecutorTest, ring_before_start_is_noop)
 {
     std::atomic<int> calls { 0 };
 
-    cpp_components::executor::Executor executor { [&calls]() {
+    cppc::executor::Executor executor { [&calls]() {
         calls.fetch_add(1);
         return false;
     } };
@@ -571,7 +569,7 @@ TEST(ExecutorDeathTest, exception_escaping_callback_aborts)
     GTEST_FLAG_SET(death_test_style, "threadsafe");
     EXPECT_DEATH(
         {
-            cpp_components::executor::Executor executor {};
+            cppc::executor::Executor executor {};
             if (executor.start()) {
                 return;
             }

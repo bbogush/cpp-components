@@ -3,8 +3,8 @@
  *  it under the terms of the Apache License Version 2.0.
  */
 
-#ifndef CPP_COMPONENTS_EXECUTOR_H
-#define CPP_COMPONENTS_EXECUTOR_H
+#ifndef CPPC_EXECUTOR_H
+#define CPPC_EXECUTOR_H
 
 #include <boost/asio.hpp>
 
@@ -16,7 +16,7 @@
 #include <system_error>
 #include <thread>
 
-namespace cpp_components::executor {
+namespace cppc::executor {
 
 class Executor {
 public:
@@ -104,6 +104,6 @@ private:
     uint64_t doorbell_counter = 0; // executor thread only
 };
 
-} // namespace cpp_components::executor
+} // namespace cppc::executor
 
-#endif // CPP_COMPONENTS_EXECUTOR_H
+#endif // CPPC_EXECUTOR_H

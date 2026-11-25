@@ -11,7 +11,7 @@
 #include <mutex>
 #include <utility>
 
-namespace cpp_components::https_multiplex_client {
+namespace cppc::https_multiplex_client {
 
 namespace {
 
@@ -664,4 +664,4 @@ const char *HttpsMultiplexClient::to_curl_method(HttpMethod method)
     }
 }
 
-} // namespace cpp_components::https_multiplex_client
+} // namespace cppc::https_multiplex_client

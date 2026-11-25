@@ -3,8 +3,8 @@
  *  it under the terms of the Apache License Version 2.0.
  */
 
-#include "cpp_components/executor/executor.h"
-#include "cpp_components/https_client_async/https_client_async.h"
+#include "cppc/executor/executor.h"
+#include "cppc/https_client_async/https_client_async.h"
 
 #include <gtest/gtest.h>
 
@@ -142,17 +142,15 @@ TEST(HttpsClientAsyncTest, get_returns_body_and_status)
     });
     const auto port_string = std::to_string(port);
 
-    cpp_components::executor::Executor executor {};
+    cppc::executor::Executor executor {};
     ASSERT_FALSE(executor.start());
-    auto client = cpp_components::https_client_async::HttpsClientAsync::create(executor);
+    auto client = cppc::https_client_async::HttpsClientAsync::create(executor);
     client->set_ca_certificate(TEST_CERT_DIR "/test-cert.pem");
 
-    std::promise<std::pair<std::error_code, cpp_components::https_client_async::HttpResponse>>
-        result;
+    std::promise<std::pair<std::error_code, cppc::https_client_async::HttpResponse>> result;
     const auto result_future = result.get_future().share();
     client->get("localhost", port_string, "/hello", std::chrono::milliseconds { 30000 },
-        [&result](const std::error_code &ec,
-            cpp_components::https_client_async::HttpResponse response) {
+        [&result](const std::error_code &ec, cppc::https_client_async::HttpResponse response) {
             result.set_value({ ec, std::move(response) });
         });
 
@@ -176,17 +174,15 @@ TEST(HttpsClientAsyncTest, post_sends_body)
     });
     const auto port_string = std::to_string(port);
 
-    cpp_components::executor::Executor executor {};
+    cppc::executor::Executor executor {};
     ASSERT_FALSE(executor.start());
-    auto client = cpp_components::https_client_async::HttpsClientAsync::create(executor);
+    auto client = cppc::https_client_async::HttpsClientAsync::create(executor);
     client->set_ca_certificate(TEST_CERT_DIR "/test-cert.pem");
 
-    std::promise<std::pair<std::error_code, cpp_components::https_client_async::HttpResponse>>
-        result;
+    std::promise<std::pair<std::error_code, cppc::https_client_async::HttpResponse>> result;
     const auto result_future = result.get_future().share();
     client->post("localhost", port_string, "/echo", "payload", std::chrono::milliseconds { 30000 },
-        [&result](const std::error_code &ec,
-            cpp_components::https_client_async::HttpResponse response) {
+        [&result](const std::error_code &ec, cppc::https_client_async::HttpResponse response) {
             result.set_value({ ec, std::move(response) });
         });
 
@@ -207,15 +203,14 @@ TEST(HttpsClientAsyncTest, custom_headers_are_sent)
     });
     const auto port_string = std::to_string(port);
 
-    cpp_components::executor::Executor executor {};
+    cppc::executor::Executor executor {};
     ASSERT_FALSE(executor.start());
-    auto client = cpp_components::https_client_async::HttpsClientAsync::create(executor);
+    auto client = cppc::https_client_async::HttpsClientAsync::create(executor);
     client->set_ca_certificate(TEST_CERT_DIR "/test-cert.pem");
 
     std::promise<std::error_code> result;
     const auto result_future = result.get_future().share();
-    client->request(cpp_components::https_client_async::HttpMethod::get, "localhost", port_string,
-        "/",
+    client->request(cppc::https_client_async::HttpMethod::get, "localhost", port_string, "/",
         {
     },
         { { "X-Test", "value" } }, std::chrono::milliseconds { 30000 },
@@ -234,16 +229,15 @@ TEST(HttpsClientAsyncTest, response_headers_are_returned)
     });
     const auto port_string = std::to_string(port);
 
-    cpp_components::executor::Executor executor {};
+    cppc::executor::Executor executor {};
     ASSERT_FALSE(executor.start());
-    auto client = cpp_components::https_client_async::HttpsClientAsync::create(executor);
+    auto client = cppc::https_client_async::HttpsClientAsync::create(executor);
     client->set_ca_certificate(TEST_CERT_DIR "/test-cert.pem");
 
-    std::promise<cpp_components::https_client_async::HttpResponse> result;
+    std::promise<cppc::https_client_async::HttpResponse> result;
     const auto result_future = result.get_future().share();
     client->get("localhost", port_string, "/", std::chrono::milliseconds { 30000 },
-        [&result](const std::error_code &ec,
-            cpp_components::https_client_async::HttpResponse response) {
+        [&result](const std::error_code &ec, cppc::https_client_async::HttpResponse response) {
             if (!ec) {
                 result.set_value(std::move(response));
             }
@@ -270,9 +264,9 @@ TEST(HttpsClientAsyncTest, second_request_while_busy_fails)
     });
     const auto port_string = std::to_string(port);
 
-    cpp_components::executor::Executor executor {};
+    cppc::executor::Executor executor {};
     ASSERT_FALSE(executor.start());
-    auto client = cpp_components::https_client_async::HttpsClientAsync::create(executor);
+    auto client = cppc::https_client_async::HttpsClientAsync::create(executor);
     client->set_ca_certificate(TEST_CERT_DIR "/test-cert.pem");
 
     std::promise<std::error_code> first_result;
@@ -295,9 +289,9 @@ TEST(HttpsClientAsyncTest, second_request_while_busy_fails)
 
 TEST(HttpsClientAsyncTest, cancel_aborts_in_flight_request)
 {
-    cpp_components::executor::Executor executor {};
+    cppc::executor::Executor executor {};
     ASSERT_FALSE(executor.start());
-    auto client = cpp_components::https_client_async::HttpsClientAsync::create(executor);
+    auto client = cppc::https_client_async::HttpsClientAsync::create(executor);
     client->set_ca_certificate(TEST_CERT_DIR "/test-cert.pem");
 
     std::promise<std::error_code> result;
@@ -315,9 +309,9 @@ TEST(HttpsClientAsyncTest, cancel_aborts_in_flight_request)
 
 TEST(HttpsClientAsyncTest, connect_reports_dns_failure)
 {
-    cpp_components::executor::Executor executor {};
+    cppc::executor::Executor executor {};
     ASSERT_FALSE(executor.start());
-    auto client = cpp_components::https_client_async::HttpsClientAsync::create(executor);
+    auto client = cppc::https_client_async::HttpsClientAsync::create(executor);
 
     std::promise<std::error_code> result;
     const auto result_future = result.get_future().share();
@@ -334,9 +328,9 @@ TEST(HttpsClientAsyncTest, connect_reports_connection_refused)
 {
     const auto port_string = std::to_string(closed_port());
 
-    cpp_components::executor::Executor executor {};
+    cppc::executor::Executor executor {};
     ASSERT_FALSE(executor.start());
-    auto client = cpp_components::https_client_async::HttpsClientAsync::create(executor);
+    auto client = cppc::https_client_async::HttpsClientAsync::create(executor);
 
     std::promise<std::error_code> result;
     const auto result_future = result.get_future().share();
@@ -351,15 +345,15 @@ TEST(HttpsClientAsyncTest, connect_reports_connection_refused)
 
 TEST(HttpsClientAsyncTest, destroy_while_busy_cleans_up)
 {
-    auto executor = std::make_unique<cpp_components::executor::Executor>();
+    auto executor = std::make_unique<cppc::executor::Executor>();
     ASSERT_FALSE(executor->start());
-    auto client = cpp_components::https_client_async::HttpsClientAsync::create(*executor);
+    auto client = cppc::https_client_async::HttpsClientAsync::create(*executor);
     client->set_ca_certificate(TEST_CERT_DIR "/test-cert.pem");
 
     client->get("192.0.2.1", "9", "/", std::chrono::milliseconds { 30000 },
         [](const std::error_code &, const auto &) {});
 
-    const std::weak_ptr<cpp_components::https_client_async::HttpsClientAsync> weak_client = client;
+    const std::weak_ptr<cppc::https_client_async::HttpsClientAsync> weak_client = client;
     client.reset();
     executor.reset();
     EXPECT_TRUE(weak_client.expired());
@@ -371,9 +365,9 @@ TEST(HttpsClientAsyncTest, request_timeout_allows_successful_request)
         [](const auto &, auto &response) { response.body() = "ok"; });
     const auto port_string = std::to_string(port);
 
-    cpp_components::executor::Executor executor {};
+    cppc::executor::Executor executor {};
     ASSERT_FALSE(executor.start());
-    auto client = cpp_components::https_client_async::HttpsClientAsync::create(executor);
+    auto client = cppc::https_client_async::HttpsClientAsync::create(executor);
     client->set_ca_certificate(TEST_CERT_DIR "/test-cert.pem");
 
     std::promise<std::error_code> result;
@@ -392,9 +386,9 @@ TEST(HttpsClientAsyncTest, zero_timeout_disables_deadline)
         [](const auto &, auto &response) { response.body() = "ok"; });
     const auto port_string = std::to_string(port);
 
-    cpp_components::executor::Executor executor {};
+    cppc::executor::Executor executor {};
     ASSERT_FALSE(executor.start());
-    auto client = cpp_components::https_client_async::HttpsClientAsync::create(executor);
+    auto client = cppc::https_client_async::HttpsClientAsync::create(executor);
     client->set_ca_certificate(TEST_CERT_DIR "/test-cert.pem");
 
     std::promise<std::error_code> result;
@@ -413,9 +407,9 @@ TEST(HttpsClientAsyncTest, empty_ca_certificate_is_ignored)
         [](const auto &, auto &response) { response.body() = "ok"; });
     const auto port_string = std::to_string(port);
 
-    cpp_components::executor::Executor executor {};
+    cppc::executor::Executor executor {};
     ASSERT_FALSE(executor.start());
-    auto client = cpp_components::https_client_async::HttpsClientAsync::create(executor);
+    auto client = cppc::https_client_async::HttpsClientAsync::create(executor);
     client->set_ca_certificate({});
     client->set_ca_certificate(TEST_CERT_DIR "/test-cert.pem");
 
@@ -431,7 +425,7 @@ TEST(HttpsClientAsyncTest, empty_ca_certificate_is_ignored)
 
 TEST(HttpsClientAsyncTest, request_supports_remaining_http_methods)
 {
-    using cpp_components::https_client_async::HttpMethod;
+    using cppc::https_client_async::HttpMethod;
 
     const struct {
         HttpMethod method;
@@ -445,9 +439,9 @@ TEST(HttpsClientAsyncTest, request_supports_remaining_http_methods)
 
     // One executor and client for all cases: each io_context owns an io_uring
     // ring, and creating rings in a tight loop can make io_uring_queue_init fail.
-    cpp_components::executor::Executor executor {};
+    cppc::executor::Executor executor {};
     ASSERT_FALSE(executor.start());
-    auto client = cpp_components::https_client_async::HttpsClientAsync::create(executor);
+    auto client = cppc::https_client_async::HttpsClientAsync::create(executor);
     client->set_ca_certificate(TEST_CERT_DIR "/test-cert.pem");
 
     for (const auto &test_case : cases) {
@@ -476,9 +470,9 @@ TEST(HttpsClientAsyncTest, ssl_handshake_failure_is_reported)
     const auto port = start_plain_tcp_close_server();
     const auto port_string = std::to_string(port);
 
-    cpp_components::executor::Executor executor {};
+    cppc::executor::Executor executor {};
     ASSERT_FALSE(executor.start());
-    auto client = cpp_components::https_client_async::HttpsClientAsync::create(executor);
+    auto client = cppc::https_client_async::HttpsClientAsync::create(executor);
     client->set_ca_certificate(TEST_CERT_DIR "/test-cert.pem");
 
     std::promise<std::error_code> result;
@@ -494,9 +488,9 @@ TEST(HttpsClientAsyncTest, ssl_handshake_failure_is_reported)
 
 TEST(HttpsClientAsyncTest, set_ca_certificate_reports_missing_file)
 {
-    cpp_components::executor::Executor executor {};
+    cppc::executor::Executor executor {};
     ASSERT_FALSE(executor.start());
-    auto client = cpp_components::https_client_async::HttpsClientAsync::create(executor);
+    auto client = cppc::https_client_async::HttpsClientAsync::create(executor);
 
     EXPECT_TRUE(client->set_ca_certificate("/nonexistent/ca-cert.pem"));
     EXPECT_FALSE(client->set_ca_certificate(""));

@@ -3,7 +3,7 @@
  *  it under the terms of the Apache License Version 2.0.
  */
 
-#include "cpp_components/timer/timer.h"
+#include "cppc/timer/timer.h"
 
 #include <gtest/gtest.h>
 
@@ -30,9 +30,9 @@ TEST(TimerTest, expires_after_fires_handler)
     std::promise<std::error_code> done;
     const auto done_future = done.get_future().share();
 
-    cpp_components::executor::Executor executor {};
+    cppc::executor::Executor executor {};
     ASSERT_FALSE(executor.start());
-    cpp_components::timer::Timer timer { executor };
+    cppc::timer::Timer timer { executor };
 
     timer.expires_after(short_delay);
     timer.async_wait([&done](const std::error_code &ec) { done.set_value(ec); });
@@ -47,9 +47,9 @@ TEST(TimerTest, expires_at_fires_handler)
     std::promise<std::error_code> done;
     const auto done_future = done.get_future().share();
 
-    cpp_components::executor::Executor executor {};
+    cppc::executor::Executor executor {};
     ASSERT_FALSE(executor.start());
-    cpp_components::timer::Timer timer { executor };
+    cppc::timer::Timer timer { executor };
 
     const auto deadline = std::chrono::steady_clock::now() + short_delay;
     timer.expires_at(deadline);
@@ -62,9 +62,9 @@ TEST(TimerTest, expires_at_fires_handler)
 
 TEST(TimerTest, expiry_matches_expires_at)
 {
-    cpp_components::executor::Executor executor {};
+    cppc::executor::Executor executor {};
     ASSERT_FALSE(executor.start());
-    cpp_components::timer::Timer timer { executor };
+    cppc::timer::Timer timer { executor };
 
     const auto deadline = std::chrono::steady_clock::now() + short_delay;
     timer.expires_at(deadline);
@@ -78,9 +78,9 @@ TEST(TimerTest, cancel_invokes_handler_with_operation_canceled)
     std::promise<std::error_code> done;
     const auto done_future = done.get_future().share();
 
-    cpp_components::executor::Executor executor {};
+    cppc::executor::Executor executor {};
     ASSERT_FALSE(executor.start());
-    cpp_components::timer::Timer timer { executor };
+    cppc::timer::Timer timer { executor };
 
     timer.expires_after(std::chrono::seconds { 30 });
     timer.async_wait([&done](const std::error_code &ec) { done.set_value(ec); });
@@ -99,9 +99,9 @@ TEST(TimerTest, expires_after_cancels_pending_wait)
     std::promise<std::error_code> second_done;
     const auto second_done_future = second_done.get_future().share();
 
-    cpp_components::executor::Executor executor {};
+    cppc::executor::Executor executor {};
     ASSERT_FALSE(executor.start());
-    cpp_components::timer::Timer timer { executor };
+    cppc::timer::Timer timer { executor };
 
     timer.expires_after(std::chrono::seconds { 30 });
     timer.async_wait([&first_done](const std::error_code &ec) { first_done.set_value(ec); });
@@ -122,9 +122,9 @@ TEST(TimerTest, async_wait_with_empty_handler_does_not_crash)
     std::promise<void> started;
     const auto started_future = started.get_future().share();
 
-    cpp_components::executor::Executor executor {};
+    cppc::executor::Executor executor {};
     ASSERT_FALSE(executor.start());
-    cpp_components::timer::Timer timer { executor };
+    cppc::timer::Timer timer { executor };
 
     timer.expires_after(short_delay);
     timer.async_wait(nullptr);
@@ -141,10 +141,10 @@ TEST(TimerTest, destructor_cancels_pending_wait)
     std::promise<std::error_code> done;
     const auto done_future = done.get_future().share();
 
-    cpp_components::executor::Executor executor {};
+    cppc::executor::Executor executor {};
     ASSERT_FALSE(executor.start());
     {
-        cpp_components::timer::Timer timer { executor };
+        cppc::timer::Timer timer { executor };
         timer.expires_after(std::chrono::seconds { 30 });
         timer.async_wait([&done](const std::error_code &ec) { done.set_value(ec); });
     }
@@ -160,9 +160,9 @@ TEST(TimerTest, handler_runs_on_executor_thread)
     const auto handler_thread_id_future = handler_thread_id.get_future().share();
     const auto main_thread_id = std::this_thread::get_id();
 
-    cpp_components::executor::Executor executor {};
+    cppc::executor::Executor executor {};
     ASSERT_FALSE(executor.start());
-    cpp_components::timer::Timer timer { executor };
+    cppc::timer::Timer timer { executor };
 
     timer.expires_after(short_delay);
     timer.async_wait([&handler_thread_id](const std::error_code &) {

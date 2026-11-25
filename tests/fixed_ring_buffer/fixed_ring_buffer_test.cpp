@@ -3,7 +3,7 @@
  *  it under the terms of the Apache License Version 2.0.
  */
 
-#include "cpp_components/fixed_ring_buffer/fixed_ring_buffer.h"
+#include "cppc/fixed_ring_buffer/fixed_ring_buffer.h"
 
 #include <gtest/gtest.h>
 
@@ -13,7 +13,7 @@
 
 namespace {
 
-using cpp_components::fixed_ring_buffer::FixedRingBuffer;
+using cppc::fixed_ring_buffer::FixedRingBuffer;
 
 template<size_t capacity>
 concept ValidCapacity = requires { typename FixedRingBuffer<int, capacity>; };

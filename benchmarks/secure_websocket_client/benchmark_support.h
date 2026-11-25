@@ -3,10 +3,10 @@
  *  it under the terms of the Apache License Version 2.0.
  */
 
-#ifndef CPP_COMPONENTS_BENCHMARKS_SECURE_WEBSOCKET_CLIENT_BENCHMARK_SUPPORT_H
-#define CPP_COMPONENTS_BENCHMARKS_SECURE_WEBSOCKET_CLIENT_BENCHMARK_SUPPORT_H
+#ifndef CPPC_BENCHMARKS_SECURE_WEBSOCKET_CLIENT_BENCHMARK_SUPPORT_H
+#define CPPC_BENCHMARKS_SECURE_WEBSOCKET_CLIENT_BENCHMARK_SUPPORT_H
 
-#include "cpp_components/secure_websocket_client/secure_websocket_client.h"
+#include "cppc/secure_websocket_client/secure_websocket_client.h"
 
 #include <chrono>
 #include <cstdint>
@@ -28,10 +28,10 @@ bool wait_ready(const std::shared_future<T> &future)
 uint16_t start_secure_echo_server();
 uint16_t start_secure_push_server();
 
-bool connect_client(cpp_components::secure_websocket_client::SecureWebSocketClient &client,
+bool connect_client(cppc::secure_websocket_client::SecureWebSocketClient &client,
     const std::string &port_string);
 
-void close_client(cpp_components::secure_websocket_client::SecureWebSocketClient &client);
+void close_client(cppc::secure_websocket_client::SecureWebSocketClient &client);
 
 } // namespace secure_websocket_client_benchmark
 

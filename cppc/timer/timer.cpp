@@ -5,7 +5,7 @@
 
 #include "timer.h"
 
-namespace cpp_components::timer {
+namespace cppc::timer {
 
 Timer::Timer(executor::Executor &executor) : timer(executor.get_context())
 {
@@ -50,4 +50,4 @@ void Timer::cancel()
     }
 }
 
-} // namespace cpp_components::timer
+} // namespace cppc::timer

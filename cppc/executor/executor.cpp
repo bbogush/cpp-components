@@ -5,7 +5,7 @@
 
 #include "executor.h"
 
-#include "cpp_components/logger/logger.h"
+#include "cppc/logger/logger.h"
 
 #include <cerrno>
 #include <cstdlib>
@@ -15,7 +15,7 @@
 #include <sys/eventfd.h>
 #include <unistd.h>
 
-namespace cpp_components::executor {
+namespace cppc::executor {
 
 Executor::Executor() : Executor(DoorbellHandler {})
 {
@@ -73,10 +73,10 @@ void Executor::run() noexcept
     try {
         io_context.run();
     } catch (const std::exception &e) {
-        CPP_COMPONENTS_LOG_CRITICAL("Executor: unhandled exception in a callback: {}", e.what());
+        CPPC_LOG_CRITICAL("Executor: unhandled exception in a callback: {}", e.what());
         flush_log_and_abort();
     } catch (...) {
-        CPP_COMPONENTS_LOG_CRITICAL("Executor: unhandled unknown exception in a callback");
+        CPPC_LOG_CRITICAL("Executor: unhandled unknown exception in a callback");
         flush_log_and_abort();
     }
 }
@@ -231,7 +231,7 @@ void Executor::handle_doorbell(const boost::system::error_code &ec)
 {
     if (ec) {
         if (ec != boost::asio::error::operation_aborted) {
-            CPP_COMPONENTS_LOG_ERROR("Executor doorbell: {}", ec.message());
+            CPPC_LOG_ERROR("Executor doorbell: {}", ec.message());
         }
         doorbell_armed.store(false, std::memory_order_relaxed);
         return;
@@ -274,4 +274,4 @@ void Executor::write_doorbell() const noexcept
     }
 }
 
-} // namespace cpp_components::executor
+} // namespace cppc::executor

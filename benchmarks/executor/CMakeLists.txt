@@ -4,7 +4,7 @@ target_link_libraries(executor_post_benchmark PRIVATE project_options)
 target_link_libraries(executor_post_benchmark PRIVATE project_features)
 target_link_libraries(executor_post_benchmark PRIVATE benchmark::benchmark)
 target_link_libraries(executor_post_benchmark PRIVATE benchmark::benchmark_main)
-target_link_libraries(executor_post_benchmark PRIVATE cpp_components)
+target_link_libraries(executor_post_benchmark PRIVATE cppc)
 
 set_target_properties(executor_post_benchmark PROPERTIES RUNTIME_OUTPUT_DIRECTORY
                                                          "${CMAKE_BINARY_DIR}")

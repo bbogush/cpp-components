@@ -29,6 +29,6 @@ endif()
 message(STATUS "Running cppcheck")
 execute_process(
   COMMAND
-    "${CPPCHECK_EXECUTABLE}" --project=${_compile_commands} --file-filter=*/cpp_components/*
+    "${CPPCHECK_EXECUTABLE}" --project=${_compile_commands} --file-filter=*/cppc/*
     --enable=warning,style,performance,portability --inline-suppr --error-exitcode=1 --quiet -j
     ${_jobs} COMMAND_ERROR_IS_FATAL ANY)

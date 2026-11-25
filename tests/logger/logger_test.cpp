@@ -3,7 +3,7 @@
  *  it under the terms of the Apache License Version 2.0.
  */
 
-#include "cpp_components/logger/logger.h"
+#include "cppc/logger/logger.h"
 
 #include <gtest/gtest.h>
 
@@ -22,7 +22,7 @@
 
 namespace {
 
-namespace logger = cpp_components::logger;
+namespace logger = cppc::logger;
 
 class LoggerTest : public testing::Test {
 protected:
@@ -30,7 +30,7 @@ protected:
     {
         const auto *test_info = testing::UnitTest::GetInstance()->current_test_info();
         dir = std::filesystem::temp_directory_path() /
-            ("cpp_components_logger_test_" + std::to_string(getpid()) + "_" + test_info->name());
+            ("cppc_logger_test_" + std::to_string(getpid()) + "_" + test_info->name());
         std::filesystem::remove_all(dir);
         std::filesystem::create_directories(dir);
     }
@@ -62,7 +62,7 @@ size_t count_occurrences(std::string_view text, std::string_view pattern)
 {
     size_t count = 0;
     for (auto pos = text.find(pattern); pos != std::string_view::npos;
-        pos = text.find(pattern, pos + pattern.size())) {
+         pos = text.find(pattern, pos + pattern.size())) {
         ++count;
     }
     return count;
@@ -89,7 +89,7 @@ bool matches_mask(std::string_view text, std::string_view mask)
 
 TEST_F(LoggerTest, macros_are_noop_when_not_initialized)
 {
-    CPP_COMPONENTS_LOG_INFO("dropped {}", 1);
+    CPPC_LOG_INFO("dropped {}", 1);
     logger::uninit();
 }
 
@@ -99,7 +99,7 @@ TEST_F(LoggerTest, default_config_logs_to_stdout)
 
     testing::internal::CaptureStdout();
     ASSERT_FALSE(logger::init(logger::Config {}));
-    CPP_COMPONENTS_LOG_INFO("stdout message {}", 7);
+    CPPC_LOG_INFO("stdout message {}", 7);
     logger::uninit();
     const auto output = testing::internal::GetCapturedStdout();
 
@@ -112,7 +112,7 @@ TEST_F(LoggerTest, writes_message_without_logger_name)
     const auto config = make_config("app.log");
     ASSERT_FALSE(logger::init(config));
 
-    CPP_COMPONENTS_LOG_INFO("hello {}", 42);
+    CPPC_LOG_INFO("hello {}", 42);
     logger::uninit();
 
     const auto content = read_file(config.file_path);
@@ -131,7 +131,7 @@ TEST_F(LoggerTest, writes_string_ref_argument)
     const auto config = make_config("app.log");
     ASSERT_FALSE(logger::init(config));
 
-    CPP_COMPONENTS_LOG_INFO("value {}", logger::StringRef { text });
+    CPPC_LOG_INFO("value {}", logger::StringRef { text });
     logger::uninit();
 
     EXPECT_NE(read_file(config.file_path).find("value referenced text"), std::string::npos);
@@ -142,7 +142,7 @@ TEST_F(LoggerTest, flush_log_writes_pending_messages)
     const auto config = make_config("app.log");
     ASSERT_FALSE(logger::init(config));
 
-    CPP_COMPONENTS_LOG_INFO("flushed message");
+    CPPC_LOG_INFO("flushed message");
     logger::flush_log();
 
     EXPECT_NE(read_file(config.file_path).find("flushed message"), std::string::npos);
@@ -159,7 +159,7 @@ TEST_F(LoggerTest, file_output_does_not_write_stdout)
 
     testing::internal::CaptureStdout();
     ASSERT_FALSE(logger::init(config));
-    CPP_COMPONENTS_LOG_INFO("file only message");
+    CPPC_LOG_INFO("file only message");
     logger::uninit();
     const auto output = testing::internal::GetCapturedStdout();
 
@@ -174,7 +174,7 @@ TEST_F(LoggerTest, console_and_file_output_writes_both)
 
     testing::internal::CaptureStdout();
     ASSERT_FALSE(logger::init(config));
-    CPP_COMPONENTS_LOG_INFO("both message");
+    CPPC_LOG_INFO("both message");
     logger::uninit();
     const auto output = testing::internal::GetCapturedStdout();
 
@@ -188,10 +188,10 @@ TEST_F(LoggerTest, info_level_filters_debug)
     config.level = logger::Level::info;
     ASSERT_FALSE(logger::init(config));
 
-    CPP_COMPONENTS_LOG_DEBUG("debug message");
-    CPP_COMPONENTS_LOG_INFO("info message");
-    CPP_COMPONENTS_LOG_WARN("warn message");
-    CPP_COMPONENTS_LOG_ERROR("error message");
+    CPPC_LOG_DEBUG("debug message");
+    CPPC_LOG_INFO("info message");
+    CPPC_LOG_WARN("warn message");
+    CPPC_LOG_ERROR("error message");
     logger::uninit();
 
     const auto content = read_file(config.file_path);
@@ -207,7 +207,7 @@ TEST_F(LoggerTest, debug_level_writes_debug)
     config.level = logger::Level::debug;
     ASSERT_FALSE(logger::init(config));
 
-    CPP_COMPONENTS_LOG_DEBUG("debug message");
+    CPPC_LOG_DEBUG("debug message");
     logger::uninit();
 
     EXPECT_NE(read_file(config.file_path).find(" LOG_DEBUG "), std::string::npos);
@@ -218,15 +218,15 @@ TEST_F(LoggerTest, warning_and_error_levels_filter_lower_levels)
     auto config = make_config("warning.log");
     config.level = logger::Level::warning;
     ASSERT_FALSE(logger::init(config));
-    CPP_COMPONENTS_LOG_INFO("info message");
-    CPP_COMPONENTS_LOG_WARN("warn message");
+    CPPC_LOG_INFO("info message");
+    CPPC_LOG_WARN("warn message");
     logger::uninit();
 
     config = make_config("error.log");
     config.level = logger::Level::error;
     ASSERT_FALSE(logger::init(config));
-    CPP_COMPONENTS_LOG_WARN("warn message");
-    CPP_COMPONENTS_LOG_ERROR("error message");
+    CPPC_LOG_WARN("warn message");
+    CPPC_LOG_ERROR("error message");
     logger::uninit();
 
     const auto warning_content = read_file(dir / "warning.log");
@@ -302,12 +302,12 @@ TEST_F(LoggerTest, init_fails_when_file_cannot_be_opened)
 TEST_F(LoggerTest, uninit_allows_reinit_with_new_file)
 {
     ASSERT_FALSE(logger::init(make_config("first.log")));
-    CPP_COMPONENTS_LOG_INFO("first message");
+    CPPC_LOG_INFO("first message");
     logger::uninit();
-    CPP_COMPONENTS_LOG_INFO("dropped message");
+    CPPC_LOG_INFO("dropped message");
 
     ASSERT_FALSE(logger::init(make_config("second.log")));
-    CPP_COMPONENTS_LOG_INFO("second message");
+    CPPC_LOG_INFO("second message");
     logger::uninit();
 
     const auto first = read_file(dir / "first.log");
@@ -321,11 +321,11 @@ TEST_F(LoggerTest, uninit_allows_reinit_with_new_file)
 TEST_F(LoggerTest, reinit_appends_to_existing_file)
 {
     ASSERT_FALSE(logger::init(make_config("app.log")));
-    CPP_COMPONENTS_LOG_INFO("first message");
+    CPPC_LOG_INFO("first message");
     logger::uninit();
 
     ASSERT_FALSE(logger::init(make_config("app.log")));
-    CPP_COMPONENTS_LOG_INFO("second message");
+    CPPC_LOG_INFO("second message");
     logger::uninit();
 
     const auto content = read_file(dir / "app.log");
@@ -342,7 +342,7 @@ TEST_F(LoggerTest, rotates_and_keeps_max_backup_files)
     ASSERT_FALSE(logger::init(config));
 
     for (size_t i = 0; i < message_count; ++i) {
-        CPP_COMPONENTS_LOG_INFO("rotation message number {}", i);
+        CPPC_LOG_INFO("rotation message number {}", i);
     }
     logger::uninit();
 
@@ -361,7 +361,7 @@ TEST_F(LoggerTest, does_not_rotate_by_default)
     ASSERT_FALSE(logger::init(config));
 
     for (size_t i = 0; i < message_count; ++i) {
-        CPP_COMPONENTS_LOG_INFO("unrotated message number {}", i);
+        CPPC_LOG_INFO("unrotated message number {}", i);
     }
     logger::uninit();
 
@@ -379,7 +379,7 @@ TEST_F(LoggerTest, rotates_without_backups_when_max_backup_files_is_zero)
     ASSERT_FALSE(logger::init(config));
 
     for (size_t i = 0; i < message_count; ++i) {
-        CPP_COMPONENTS_LOG_INFO("rotation message number {}", i);
+        CPPC_LOG_INFO("rotation message number {}", i);
     }
     logger::uninit();
 
@@ -394,7 +394,7 @@ TEST_F(LoggerTest, trace_level_writes_trace)
     config.level = logger::Level::trace;
     ASSERT_FALSE(logger::init(config));
 
-    CPP_COMPONENTS_LOG_TRACE("trace message");
+    CPPC_LOG_TRACE("trace message");
     logger::uninit();
 
     EXPECT_NE(read_file(config.file_path).find("trace message"), std::string::npos);
@@ -416,7 +416,7 @@ TEST_F(LoggerTest, preallocate_on_new_thread_keeps_logging)
     std::error_code error;
     std::thread thread { [&error] {
         error = logger::preallocate();
-        CPP_COMPONENTS_LOG_INFO("preallocated thread message");
+        CPPC_LOG_INFO("preallocated thread message");
     } };
     thread.join();
     logger::uninit();
@@ -427,7 +427,7 @@ TEST_F(LoggerTest, preallocate_on_new_thread_keeps_logging)
 
 TEST_F(LoggerTest, limit_macros_are_noop_when_not_initialized)
 {
-    CPP_COMPONENTS_LOG_WARN_LIMIT(std::chrono::hours { 1 }, "dropped {}", 1);
+    CPPC_LOG_WARN_LIMIT(std::chrono::hours { 1 }, "dropped {}", 1);
 }
 
 TEST_F(LoggerTest, limit_macros_write_every_level)
@@ -437,12 +437,12 @@ TEST_F(LoggerTest, limit_macros_write_every_level)
     ASSERT_FALSE(logger::init(config));
 
     constexpr auto interval = std::chrono::hours { 1 };
-    CPP_COMPONENTS_LOG_TRACE_LIMIT(interval, "trace limited");
-    CPP_COMPONENTS_LOG_DEBUG_LIMIT(interval, "debug limited");
-    CPP_COMPONENTS_LOG_INFO_LIMIT(interval, "info limited");
-    CPP_COMPONENTS_LOG_WARN_LIMIT(interval, "warn limited");
-    CPP_COMPONENTS_LOG_ERROR_LIMIT(interval, "error limited");
-    CPP_COMPONENTS_LOG_CRITICAL_LIMIT(interval, "critical limited");
+    CPPC_LOG_TRACE_LIMIT(interval, "trace limited");
+    CPPC_LOG_DEBUG_LIMIT(interval, "debug limited");
+    CPPC_LOG_INFO_LIMIT(interval, "info limited");
+    CPPC_LOG_WARN_LIMIT(interval, "warn limited");
+    CPPC_LOG_ERROR_LIMIT(interval, "error limited");
+    CPPC_LOG_CRITICAL_LIMIT(interval, "critical limited");
     logger::uninit();
 
     const auto content = read_file(config.file_path);
@@ -462,7 +462,7 @@ TEST_F(LoggerTest, limit_macro_respects_level)
     const auto config = make_config("app.log");
     ASSERT_FALSE(logger::init(config));
 
-    CPP_COMPONENTS_LOG_DEBUG_LIMIT(std::chrono::hours { 1 }, "debug limited");
+    CPPC_LOG_DEBUG_LIMIT(std::chrono::hours { 1 }, "debug limited");
     logger::uninit();
 
     EXPECT_EQ(read_file(config.file_path).find("debug limited"), std::string::npos);
@@ -475,7 +475,7 @@ TEST_F(LoggerTest, limit_macro_drops_calls_within_interval)
     ASSERT_FALSE(logger::init(config));
 
     for (size_t i = 0; i < call_count; ++i) {
-        CPP_COMPONENTS_LOG_WARN_LIMIT(std::chrono::hours { 1 }, "limited message {}", i);
+        CPPC_LOG_WARN_LIMIT(std::chrono::hours { 1 }, "limited message {}", i);
     }
     logger::uninit();
 
@@ -495,7 +495,7 @@ TEST_F(LoggerTest, limit_macro_reports_dropped_calls_after_interval)
         if (i == burst_count) {
             std::this_thread::sleep_for(interval + std::chrono::milliseconds { 50 });
         }
-        CPP_COMPONENTS_LOG_WARN_LIMIT(interval, "limited message {}", i);
+        CPPC_LOG_WARN_LIMIT(interval, "limited message {}", i);
     }
     logger::uninit();
 

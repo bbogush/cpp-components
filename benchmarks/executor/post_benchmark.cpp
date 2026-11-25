@@ -3,7 +3,7 @@
  *  it under the terms of the Apache License Version 2.0.
  */
 
-#include "cpp_components/executor/executor.h"
+#include "cppc/executor/executor.h"
 
 #include <benchmark/benchmark.h>
 
@@ -26,7 +26,7 @@ public:
 
     void SetUp(const ::benchmark::State & /*state*/) override
     {
-        executor = std::make_unique<cpp_components::executor::Executor>();
+        executor = std::make_unique<cppc::executor::Executor>();
         if (const auto ec = executor->start()) {
             // SetUp cannot skip the benchmark; nothing can run without the executor.
             std::cerr << "Executor start failed: " << ec.message() << '\n';
@@ -43,7 +43,7 @@ public:
     }
 
 protected:
-    std::unique_ptr<cpp_components::executor::Executor> executor;
+    std::unique_ptr<cppc::executor::Executor> executor;
 };
 
 } // namespace

@@ -5,8 +5,8 @@
 
 #include "benchmark_support.h"
 
-#include "cpp_components/executor/executor.h"
-#include "cpp_components/secure_websocket_client/secure_websocket_client.h"
+#include "cppc/executor/executor.h"
+#include "cppc/secure_websocket_client/secure_websocket_client.h"
 
 #include <benchmark/benchmark.h>
 
@@ -35,13 +35,13 @@ public:
         const auto port = start_secure_echo_server();
         port_string = std::to_string(port);
 
-        executor = std::make_unique<cpp_components::executor::Executor>();
+        executor = std::make_unique<cppc::executor::Executor>();
         if (const auto ec = executor->start()) {
             // SetUp cannot skip the benchmark; nothing can run without the executor.
             std::cerr << "Executor start failed: " << ec.message() << '\n';
             std::abort();
         }
-        client = cpp_components::secure_websocket_client::SecureWebSocketClient::create(*executor);
+        client = cppc::secure_websocket_client::SecureWebSocketClient::create(*executor);
         client->set_ca_certificate(BENCHMARK_CERT_DIR "/test-cert.pem");
         client->set_message_handler([](const char *, size_t) {});
 
@@ -66,8 +66,8 @@ public:
 protected:
     std::string setup_error;
     std::string port_string;
-    std::unique_ptr<cpp_components::executor::Executor> executor;
-    std::shared_ptr<cpp_components::secure_websocket_client::SecureWebSocketClient> client;
+    std::unique_ptr<cppc::executor::Executor> executor;
+    std::shared_ptr<cppc::secure_websocket_client::SecureWebSocketClient> client;
 };
 
 } // namespace
@@ -87,7 +87,7 @@ BENCHMARK_DEFINE_F(WriteFixture, write_throughput)(benchmark::State &state)
 
         // Writes share a fixed ring of slots, so keep at most that many outstanding.
         const auto max_outstanding = static_cast<int>(
-            cpp_components::secure_websocket_client::SecureWebSocketClient::get_write_slot_count());
+            cppc::secure_websocket_client::SecureWebSocketClient::get_write_slot_count());
         for (int i = 0; i < message_count; ++i) {
             while (i - completions.load(std::memory_order_relaxed) >= max_outstanding &&
                 !failed.load()) {

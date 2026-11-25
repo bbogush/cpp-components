@@ -3,10 +3,10 @@
  *  it under the terms of the Apache License Version 2.0.
  */
 
-#ifndef CPP_COMPONENTS_HTTPS_MULTIPLEX_CLIENT_H
-#define CPP_COMPONENTS_HTTPS_MULTIPLEX_CLIENT_H
+#ifndef CPPC_HTTPS_MULTIPLEX_CLIENT_H
+#define CPPC_HTTPS_MULTIPLEX_CLIENT_H
 
-#include "cpp_components/executor/executor.h"
+#include "cppc/executor/executor.h"
 
 #include <boost/asio/ip/tcp.hpp>
 #include <boost/asio/steady_timer.hpp>
@@ -22,7 +22,7 @@
 #include <unordered_map>
 #include <vector>
 
-namespace cpp_components::https_multiplex_client {
+namespace cppc::https_multiplex_client {
 
 enum class HttpMethod {
     get,
@@ -139,6 +139,6 @@ private:
     std::unordered_map<int *, std::shared_ptr<int>> actions;
 };
 
-} // namespace cpp_components::https_multiplex_client
+} // namespace cppc::https_multiplex_client
 
-#endif // CPP_COMPONENTS_HTTPS_MULTIPLEX_CLIENT_H
+#endif // CPPC_HTTPS_MULTIPLEX_CLIENT_H

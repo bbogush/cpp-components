@@ -49,7 +49,7 @@ jobs:
         if: always() && hashFiles('build/tests-coverage/coverage-src.info') != ''
         run: |
           {
-            echo '### Coverage (cpp_components/)'
+            echo '### Coverage (cppc/)'
             echo '```'
             lcov --summary build/tests-coverage/coverage-src.info 2>&1
             echo '```'
@@ -67,6 +67,6 @@ jobs:
         run: |
           if ! lcov --summary build/tests-coverage/coverage-src.info \
                     --fail-under-lines "$MIN_LINE_COVERAGE"; then
-            echo "::error::Line coverage of cpp_components/ is below ${MIN_LINE_COVERAGE}%"
+            echo "::error::Line coverage of cppc/ is below ${MIN_LINE_COVERAGE}%"
             exit 1
           fi

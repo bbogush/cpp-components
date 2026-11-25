@@ -5,7 +5,7 @@
 
 #include "https_client_async.h"
 
-#include "cpp_components/logger/logger.h"
+#include "cppc/logger/logger.h"
 
 #include <boost/asio/connect.hpp>
 #include <boost/asio/ssl/host_name_verification.hpp>
@@ -15,7 +15,7 @@
 
 #include <utility>
 
-namespace cpp_components::https_client_async {
+namespace cppc::https_client_async {
 
 namespace {
 
@@ -37,12 +37,11 @@ HttpsClientAsync::HttpsClientAsync(executor::Executor &executor) :
     boost::system::error_code ec;
     ssl_context.set_default_verify_paths(ec);
     if (ec) {
-        CPP_COMPONENTS_LOG_ERROR("HttpsClientAsync: failed to load default CA paths: {}",
-            ec.message());
+        CPPC_LOG_ERROR("HttpsClientAsync: failed to load default CA paths: {}", ec.message());
     }
     ssl_context.set_verify_mode(ssl::verify_peer, ec);
     if (ec) {
-        CPP_COMPONENTS_LOG_ERROR("HttpsClientAsync: failed to set verify mode: {}", ec.message());
+        CPPC_LOG_ERROR("HttpsClientAsync: failed to set verify mode: {}", ec.message());
     }
 }
 
@@ -372,4 +371,4 @@ boost::beast::http::verb HttpsClientAsync::to_beast_verb(HttpMethod method)
     }
 }
 
-} // namespace cpp_components::https_client_async
+} // namespace cppc::https_client_async

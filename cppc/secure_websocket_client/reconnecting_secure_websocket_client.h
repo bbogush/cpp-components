@@ -3,8 +3,8 @@
  *  it under the terms of the Apache License Version 2.0.
  */
 
-#ifndef CPP_COMPONENTS_RECONNECTING_SECURE_WEBSOCKET_CLIENT_H
-#define CPP_COMPONENTS_RECONNECTING_SECURE_WEBSOCKET_CLIENT_H
+#ifndef CPPC_RECONNECTING_SECURE_WEBSOCKET_CLIENT_H
+#define CPPC_RECONNECTING_SECURE_WEBSOCKET_CLIENT_H
 
 #include "secure_websocket_client.h"
 
@@ -15,7 +15,7 @@
 #include <memory>
 #include <string>
 
-namespace cpp_components::secure_websocket_client {
+namespace cppc::secure_websocket_client {
 
 class ReconnectingSecureWebSocketClient : public SecureWebSocketClient {
 public:
@@ -74,6 +74,6 @@ private:
     uint64_t connection_generation = 0;
 };
 
-} // namespace cpp_components::secure_websocket_client
+} // namespace cppc::secure_websocket_client
 
-#endif // CPP_COMPONENTS_RECONNECTING_SECURE_WEBSOCKET_CLIENT_H
+#endif // CPPC_RECONNECTING_SECURE_WEBSOCKET_CLIENT_H

@@ -34,13 +34,13 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(cpp-components)
 
-target_link_libraries(my_app PRIVATE cpp_components::cpp_components)
+target_link_libraries(my_app PRIVATE cppc::cppc)
 ```
 
-Include headers with the `cpp_components/` prefix:
+Include headers with the `cppc/` prefix:
 
 ```cpp
-#include "cpp_components/executor/executor.h"
+#include "cppc/executor/executor.h"
 ```
 
 The consumer must provide Boost, OpenSSL, libcurl, and liburing (same packages as this project's
@@ -124,7 +124,7 @@ cmake --preset asan
 cmake --build --preset asan
 ```
 
-The build product is the static library `libcpp_components.a` (for example under `build/release/`).
+The build product is the static library `libcppc.a` (for example under `build/release/`).
 
 Clean build outputs:
 
@@ -202,9 +202,9 @@ sudo perf report --stdio > perf_report.txt
 
 ## Coverage
 
-The `tests-coverage` preset builds the `cpp_components/` targets with GCC coverage instrumentation
-(`--coverage`) and enables the unit tests. Coverage is scoped to `cpp_components/` - the report
-filters out test sources and Google Test headers.
+The `tests-coverage` preset builds the `cppc/` targets with GCC coverage instrumentation
+(`--coverage`) and enables the unit tests. Coverage is scoped to `cppc/` - the report filters out
+test sources and Google Test headers.
 
 Configure, build, and run the tests to produce coverage data, then build the `coverage-report`
 preset. That step prints coverage summaries with `lcov` and generates an HTML report with `genhtml`
@@ -222,8 +222,8 @@ The last step writes an HTML report to `build/tests-coverage/coverage-report/ind
 ## Clang-Tidy
 
 Static analysis uses [clang-tidy](https://clang.llvm.org/extra/clang-tidy/) with the project
-`.clang-tidy` config. Analysis is scoped to `cpp_components/` and uses `compile_commands.json` from
-the `clang-tidy` preset (included in the Docker image).
+`.clang-tidy` config. Analysis is scoped to `cppc/` and uses `compile_commands.json` from the
+`clang-tidy` preset (included in the Docker image).
 
 Configure, then run the `clang-tidy` build preset:
 
@@ -242,10 +242,9 @@ cmake --build --preset clang-tidy
 
 ## Cppcheck
 
-Static analysis uses [Cppcheck](https://cppcheck.sourceforge.io/). Analysis is scoped to
-`cpp_components/` and uses `compile_commands.json` from the `cppcheck` preset (included in the
-Docker image). Enabled severities are warning, style, performance, and portability. Findings fail
-the build.
+Static analysis uses [Cppcheck](https://cppcheck.sourceforge.io/). Analysis is scoped to `cppc/` and
+uses `compile_commands.json` from the `cppcheck` preset (included in the Docker image). Enabled
+severities are warning, style, performance, and portability. Findings fail the build.
 
 Configure, then run the `cppcheck` build preset:
 
@@ -311,7 +310,7 @@ shfmt -w script.sh
 |-- CMakeLists.txt            # Root project configuration, warnings, and custom targets
 |-- CMakePresets.json         # Configure, build, and test presets
 |-- build/                    # Generated build output (gitignored)
-|-- cpp_components/           # Library sources and public headers
+|-- cppc/           # Library sources and public headers
 |-- tests/                    # Google Test unit tests
 |-- benchmarks/               # Google Benchmark targets
 |-- cmake/                    # CMake modules and development scripts

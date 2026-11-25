@@ -17,7 +17,7 @@
 #include <utility>
 #include <vector>
 
-namespace cpp_components::logger {
+namespace cppc::logger {
 
 namespace {
 
@@ -172,4 +172,4 @@ void uninit()
     }
 }
 
-} // namespace cpp_components::logger
+} // namespace cppc::logger
